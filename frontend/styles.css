@@ -48,3 +48,10 @@ body { margin:0; background:var(--bg); color:var(--texto);
 .card-lead .lt { font-size:12px; color:var(--suave); margin-top:2px; }
 .selo { display:inline-block; margin-top:8px; font-size:11px; font-weight:700; color:#fff; background:var(--venda); padding:3px 8px; border-radius:999px; }
 .selo small { font-weight:500; opacity:.9; }
+
+@media (max-width: 640px) {
+  .conteudo { padding:18px; }
+  .topo { padding:14px 18px; }
+  .cabecalho-evento { flex-direction:column; align-items:flex-start; }
+  .coluna { flex-basis:82vw; }
+}
