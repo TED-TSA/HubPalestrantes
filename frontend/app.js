@@ -11,6 +11,21 @@ function metrica(n, l) {
   return `<div class="metrica"><div class="n">${n}</div><div class="l">${l}</div></div>`;
 }
 
+function mascararEmail(email) {
+  const s = String(email ?? '').trim();
+  if (!s) return '';
+  const [user, dominio] = s.split('@');
+  if (!user) return s;
+  const visivel = user.length > 3 ? user.slice(3) : '';
+  return '•••' + visivel + (dominio ? '@' + dominio : '');
+}
+
+function mascararTelefone(tel) {
+  const s = String(tel ?? '');
+  if (s.length <= 4) return s;
+  return s.slice(0, -4) + '••••';
+}
+
 async function telaHome() {
   app.innerHTML = `<p class="carregando">Carregando eventos…</p>`;
   let eventos;
@@ -51,7 +66,8 @@ function cardLead(l) {
     : '';
   return `<div class="card-lead" data-instrutor="${l.instrutorSlug}">
     <div class="ln">${l.nome}</div>
-    <div class="lt">${l.telefone || 'sem telefone'}</div>
+    <div class="lt">${l.telefone ? mascararTelefone(l.telefone) : 'sem telefone'}</div>
+    ${l.email ? `<div class="lt">${mascararEmail(l.email)}</div>` : ''}
     ${selo}
   </div>`;
 }
