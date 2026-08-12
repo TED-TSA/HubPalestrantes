@@ -130,18 +130,25 @@ a:hover { color: var(--acento-claro); }
 /* Nome de evento é sigla + número ("CXJ 3006"). O desenho separa os dois: a
    sigla identifica, o número é só sequência. */
 .ev-nome { display: flex; align-items: baseline; gap: 10px; }
+/* Sombra porque agora o véu é curto e o nome encosta na foto. */
 .ev-nome .sigla {
   font-family: var(--dpy); font-size: 42px; line-height: .9;
   letter-spacing: .005em; text-transform: uppercase; color: var(--texto);
+  text-shadow: 0 2px 16px rgba(8, 8, 10, .9);
 }
-.ev-nome .num { font-family: var(--dpy); font-size: 26px; line-height: .9; color: var(--fraco); }
+/* Um tom acima do cinza do desenho: ali era fundo liso, aqui é foto. */
+.ev-nome .num {
+  font-family: var(--dpy); font-size: 26px; line-height: .9; color: var(--suave);
+  text-shadow: 0 2px 16px rgba(8, 8, 10, .95), 0 0 3px rgba(8, 8, 10, .8);
+}
 
 /* Quem subiu ao palco naquele evento, cortado no próprio card. As fotos ficam
    coloridas — mesma exceção do card de instrutor: é rosto de gente, não dado.
    O fundo âmbar aparece nas frestas entre as faixas e vira o fio do corte. */
+/* O clip-path vem inline, calculado a partir do mesmo CORTE que posiciona as
+   fotos — se ficasse aqui, o ângulo viveria escrito em dois lugares. */
 .card-evento .elenco {
-  position: absolute; top: 0; right: 0; bottom: 0; width: 72%; z-index: 1;
-  clip-path: polygon(46% 0, 100% 0, 100% 100%, 0 100%);
+  position: absolute; top: 0; right: 0; bottom: 0; width: 82%; z-index: 1;
   background: rgba(232, 180, 74, .5);
 }
 /* O recorte da faixa fica no invólucro, em coordenadas do card. A foto por
@@ -164,9 +171,9 @@ a:hover { color: var(--acento-claro); }
 .card-evento::after {
   content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 2;
   background:
-    linear-gradient(0deg, rgba(8, 8, 10, .95) 18%, rgba(8, 8, 10, .55) 32%, rgba(8, 8, 10, 0) 50%),
+    linear-gradient(0deg, rgba(8, 8, 10, .95) 16%, rgba(8, 8, 10, .5) 30%, rgba(8, 8, 10, 0) 48%),
     linear-gradient(101deg,
-      var(--surface) 30%, rgba(19, 19, 23, .62) 44%, rgba(19, 19, 23, .12) 60%, rgba(19, 19, 23, 0) 72%);
+      var(--surface) 20%, rgba(19, 19, 23, .55) 32%, rgba(19, 19, 23, .12) 46%, rgba(19, 19, 23, 0) 58%);
 }
 .card-evento > .ev-nome, .card-evento > .metricas, .card-evento > .barra-conv { position: relative; z-index: 3; }
 .card-evento > .barra-conv { position: absolute; }

@@ -96,9 +96,10 @@ function foto(classe, slug, nome, extra = '') {
     alt="${esc(nome)}" data-iniciais="${esc(iniciais(nome))}" ${extra}>`;
 }
 
-// Quanto do card, em porcentagem, a aresta diagonal anda da direita para a
-// esquerda. Mesmo valor do card de instrutor, para os dois lerem igual.
-const CORTE = 46;
+// Quanto a aresta diagonal anda da direita para a esquerda, em % da área de
+// foto. Quanto maior, mais inclinado o corte — e menos foto sobra. O recorte do
+// invólucro sai daqui também, para o ângulo não viver escrito em dois lugares.
+const CORTE = 30;
 
 // Quem subiu ao palco naquele evento, cortado no próprio card em vez de num
 // bloco à parte. Com mais de uma pessoa, a área diagonal é dividida em faixas
@@ -142,7 +143,7 @@ function elenco(instrutores) {
     return { recorte, estilo: `left:${esquerda}%;width:${largura}%` };
   });
 
-  return `<div class="elenco">
+  return `<div class="elenco" style="clip-path:polygon(${CORTE}% 0, 100% 0, 100% 100%, 0 100%)">
     ${mostra.map((ins, k) => `<span class="faixa" style="clip-path:${faixas[k].recorte}"
        title="${esc(ins.instrutor)} · ${ins.total} leads · ${ins.vendas} vendas">
        ${foto('rosto', ins.slug, ins.instrutor, `style="${faixas[k].estilo}"`)}
