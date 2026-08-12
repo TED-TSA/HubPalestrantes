@@ -114,15 +114,17 @@ a:hover { color: var(--acento-claro); }
 /* ---------- Home: grade de eventos ---------- */
 .grade { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 18px; }
 .card-evento {
-  position: relative; display: flex; flex-direction: column; justify-content: space-between;
-  min-height: 206px; padding: 26px 26px 0;
+  position: relative; overflow: hidden;
+  display: flex; flex-direction: column; justify-content: space-between;
+  min-height: 214px; padding: 26px 26px 0;
   background: var(--surface); border: 1px solid var(--borda);
   color: inherit; text-decoration: none;
-  transition: border-color .18s ease, background .18s ease;
+  transition: border-color .18s ease;
 }
+/* O fundo não muda mais no hover: o véu à esquerda é opaco e um fundo diferente
+   por baixo dele criaria uma emenda visível. */
 .card-evento:hover, .card-evento:focus-visible {
-  border-color: var(--borda-viva); border-top-color: var(--acento);
-  background: var(--surface-hover); color: inherit;
+  border-color: var(--borda-viva); border-top-color: var(--acento); color: inherit;
 }
 
 /* Nome de evento é sigla + número ("CXJ 3006"). O desenho separa os dois: a
@@ -134,18 +136,38 @@ a:hover { color: var(--acento-claro); }
 }
 .ev-nome .num { font-family: var(--dpy); font-size: 26px; line-height: .9; color: var(--fraco); }
 
-/* Quem subiu ao palco naquele evento. As fotos ficam coloridas — mesma exceção
-   do card de instrutor: é rosto de gente, não dado. */
-.elenco { display: flex; align-items: center; gap: 6px; }
-.elenco .rosto {
-  width: 42px; height: 42px; flex: 0 0 auto; object-fit: cover; object-position: center 22%;
-  border: 1px solid var(--borda-viva); background: var(--surface-alta);
-  display: flex; align-items: center; justify-content: center;
-  font-family: var(--dpy); font-size: 12px; letter-spacing: .04em; color: var(--fraco);
-  transition: border-color .18s ease;
+/* Quem subiu ao palco naquele evento, cortado no próprio card. As fotos ficam
+   coloridas — mesma exceção do card de instrutor: é rosto de gente, não dado.
+   O fundo âmbar aparece nas frestas entre as faixas e vira o fio do corte. */
+.card-evento .elenco {
+  position: absolute; top: 0; right: 0; bottom: 0; width: 84%; z-index: 1;
+  clip-path: polygon(46% 0, 100% 0, 100% 100%, 0 100%);
+  background: rgba(232, 180, 74, .5);
 }
-.elenco .mais { color: var(--suave); font-size: 13px; }
-.card-evento:hover .elenco .rosto { border-color: var(--acento); }
+/* left e width vêm inline: cada foto ocupa a caixa da sua faixa. */
+.card-evento .rosto {
+  position: absolute; top: 0; bottom: 0;
+  object-fit: cover; object-position: center 20%;
+  background: var(--surface-alta);
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--dpy); font-size: 22px; letter-spacing: .05em; color: #5c5a66;
+}
+.card-evento .mais {
+  position: absolute; top: 10px; right: 12px; z-index: 2;
+  font-family: var(--dpy); font-size: 12px; letter-spacing: .1em; color: var(--texto);
+  background: rgba(8, 8, 10, .72); padding: 3px 8px;
+}
+
+/* Véu em duas camadas: pela esquerda para o nome, pelo pé para as métricas. */
+.card-evento::after {
+  content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 2;
+  background:
+    linear-gradient(0deg, rgba(8, 8, 10, .95) 18%, rgba(8, 8, 10, .55) 32%, rgba(8, 8, 10, 0) 50%),
+    linear-gradient(101deg,
+      var(--surface) 30%, rgba(19, 19, 23, .62) 44%, rgba(19, 19, 23, .12) 60%, rgba(19, 19, 23, 0) 72%);
+}
+.card-evento > .ev-nome, .card-evento > .metricas, .card-evento > .barra-conv { position: relative; z-index: 3; }
+.card-evento > .barra-conv { position: absolute; }
 
 .metricas {
   display: flex; align-items: flex-end;

@@ -83,6 +83,8 @@ function tratarFotosQuebradas(raiz = document) {
     img.addEventListener('error', () => {
       const span = document.createElement('span');
       span.className = img.className;
+      // Leva o style junto: é nele que vai o clip-path da faixa diagonal.
+      span.style.cssText = img.style.cssText;
       span.textContent = img.dataset.iniciais;
       img.replaceWith(span);
     }, { once: true });
@@ -94,17 +96,44 @@ function foto(classe, slug, nome, extra = '') {
     alt="${esc(nome)}" data-iniciais="${esc(iniciais(nome))}" ${extra}>`;
 }
 
-// Quem subiu ao palco naquele evento. Cinco cabem na largura do card; a partir
-// do sexto mostra quatro e resume o resto em "+N" — trocar um rosto por "+1"
-// seria pior do que mostrar os cinco.
+// Quanto do card, em porcentagem, a aresta diagonal anda da direita para a
+// esquerda. Mesmo valor do card de instrutor, para os dois lerem igual.
+const CORTE = 46;
+
+// Quem subiu ao palco naquele evento, cortado no próprio card em vez de num
+// bloco à parte. Com mais de uma pessoa, a área diagonal é dividida em faixas
+// paralelas. O teto é três: a quarta faixa cai para uns 30px de largura, e uma
+// fatia dessas não deixa reconhecer ninguém — melhor resumir em "+N".
 function elenco(instrutores) {
   if (!instrutores?.length) return '';
-  const mostra = instrutores.slice(0, instrutores.length <= 5 ? 5 : 4);
+  const mostra = instrutores.slice(0, 3);
   const resto = instrutores.length - mostra.length;
+  const n = mostra.length;
+
+  // Cada foto ocupa só a caixa da própria faixa, e não o card inteiro. Se todas
+  // cobrissem tudo, cada faixa mostraria o pedaço da foto que calhasse de cair
+  // naquele x — e os rostos sairiam cortados ao meio.
+  const estilos = mostra.map((ins, k) => {
+    const t0 = CORTE + (k * (100 - CORTE)) / n;
+    const t1 = CORTE + ((k + 1) * (100 - CORTE)) / n;
+    const ultima = k === n - 1;
+    const esquerda = t0 - CORTE;
+    const largura = (ultima ? 100 : t1) - esquerda;
+    // Coordenadas do paralelogramo dentro da caixa da foto, em % dela.
+    const alto = (CORTE / largura) * 100;
+    const baixo = ultima ? 100 : ((t1 - t0) / largura) * 100;
+    // 1px de folga nas arestas inclinadas: é a fresta que deixa o âmbar do
+    // fundo aparecer e vira o fio do corte.
+    const dirAlto = ultima ? '100%' : 'calc(100% - 1px)';
+    const dirBaixo = ultima ? '100%' : `calc(${baixo}% - 1px)`;
+    return `left:${esquerda}%;width:${largura}%;`
+      + `clip-path:polygon(calc(${alto}% + 1px) 0, ${dirAlto} 0, ${dirBaixo} 100%, 1px 100%)`;
+  });
+
   return `<div class="elenco">
-    ${mostra.map((i) => foto('rosto', i.slug, i.instrutor,
-      `title="${esc(i.instrutor)} · ${i.total} leads · ${i.vendas} vendas"`)).join('')}
-    ${resto > 0 ? `<span class="rosto mais">+${resto}</span>` : ''}
+    ${mostra.map((ins, k) => foto('rosto', ins.slug, ins.instrutor,
+      `style="${estilos[k]}" title="${esc(ins.instrutor)} · ${ins.total} leads · ${ins.vendas} vendas"`)).join('')}
+    ${resto > 0 ? `<span class="mais">+${resto}</span>` : ''}
   </div>`;
 }
 
