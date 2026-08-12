@@ -97,6 +97,24 @@ test('email inexistente devolve exatamente o mesmo erro que senha errada', async
   srv.close();
 });
 
+test('sem "manter conectado" o cookie morre com o navegador', async () => {
+  const { srv, base } = await subir();
+  const semManter = await fetch(`${base}/api/login`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ email: 'admin@tradestars.com.br', senha: SENHA }),
+  });
+  assert.ok(!/Max-Age/i.test(semManter.headers.get('set-cookie')));
+
+  const comManter = await fetch(`${base}/api/login`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ email: 'admin@tradestars.com.br', senha: SENHA, manterConectado: true }),
+  });
+  assert.ok(/Max-Age=\d+/i.test(comManter.headers.get('set-cookie')));
+  srv.close();
+});
+
 test('logout invalida a sessão', async () => {
   const { srv, base } = await subir();
   const { cookie } = await entrar(base, 'admin@tradestars.com.br');

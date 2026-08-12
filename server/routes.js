@@ -3,7 +3,10 @@ import * as repo from './data/repository.js';
 import * as usuarios from './data/usuarios.js';
 import { runQuery } from './data/bq.js';
 import { conferirSenha, senhaAceitavel } from './auth/senha.js';
-import { criarSessao, destruirSessao, cookieDeSessao, cookieDeSaida } from './auth/sessao.js';
+import {
+  criarSessao, destruirSessao, cookieDeSessao, cookieDeSaida,
+  DURACAO_MS, DURACAO_LONGA_MS,
+} from './auth/sessao.js';
 import { exigirLogin, exigirAdmin } from './auth/middleware.js';
 import { bloqueado, registrarFalha, limparFalhas } from './auth/limite.js';
 import { config } from '../config.js';
@@ -29,8 +32,9 @@ export function criarRotas(deps = { runQuery }) {
       return res.status(401).json({ erro: 'Email ou senha inválidos' });
     }
     limparFalhas(chave);
-    const id = criarSessao(db, usuario.id);
-    res.setHeader('Set-Cookie', cookieDeSessao(id, config.cookieSeguro));
+    const manter = req.body?.manterConectado === true;
+    const id = criarSessao(db, usuario.id, Date.now(), manter ? DURACAO_LONGA_MS : DURACAO_MS);
+    res.setHeader('Set-Cookie', cookieDeSessao(id, config.cookieSeguro, manter));
     res.json({ usuario: usuarios.paraCliente(usuario) });
   });
 

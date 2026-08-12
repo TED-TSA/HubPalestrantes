@@ -6,39 +6,84 @@
   <title>Entrar — Hub do Palestrante</title>
   <link rel="stylesheet" href="/styles.css">
 </head>
-<body>
-  <div class="palco">
-    <!-- O src do vídeo é anexado pelo login.js só quando vale a pena: em tela
-         grande, sem economia de dados e sem preferência por menos movimento.
-         No celular fica o poster, que é um frame do próprio vídeo. -->
-    <video class="fundo" id="fundo" poster="/public/login/fundo.jpg"
-           autoplay muted loop playsinline aria-hidden="true"></video>
-    <div class="veu"></div>
-    <div class="refletor"></div>
+<body class="pagina-login">
+  <div class="cartao">
 
-    <main class="entrada">
-      <div class="caixa">
-        <p class="eyebrow">TradeStars</p>
-        <h1>Hub do<br>Palestrante</h1>
-        <p class="conduz">Entre para ver os eventos, os leads e as vendas das suas palestras.</p>
+    <aside class="vitrine">
+      <!-- O src do vídeo é anexado pelo login.js só quando vale a pena: em tela
+           grande, sem economia de dados e sem preferência por menos movimento.
+           Nos outros casos fica o poster, que é um frame do próprio vídeo. -->
+      <video class="vitrine-video" id="fundo" poster="/public/login/fundo.jpg"
+             autoplay muted loop playsinline aria-hidden="true"></video>
+      <div class="vitrine-veu"></div>
+
+      <div class="vitrine-conteudo">
+        <div class="selo">TS</div>
+        <h1>TradeStars</h1>
+        <p class="produto">Hub do Palestrante</p>
+
+        <ul class="pontos">
+          <li>Seus eventos e seus leads num lugar só</li>
+          <li>O kanban do atendimento de cada palestra</li>
+          <li>Quem comprou, o que levou e por quanto</li>
+        </ul>
+
+        <p class="direitos">© 2026 TradeStars · Todos os direitos reservados</p>
+      </div>
+    </aside>
+
+    <main class="acesso">
+      <div class="acesso-miolo">
+        <h2>Bem-vindo de volta</h2>
+        <p class="conduz">Entre com suas credenciais para acessar o Hub.</p>
 
         <form id="form" novalidate>
-          <label class="campo">
-            <span>Email</span>
-            <input type="email" name="email" autocomplete="username"
-                   placeholder="voce@tradestars.com.br" required autofocus>
+          <div class="campo-icone">
+            <label for="email">Email</label>
+            <div class="entrada">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M3 7a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                <path d="m3.5 7.5 8.5 6 8.5-6"/>
+              </svg>
+              <input type="email" id="email" name="email" autocomplete="username"
+                     placeholder="seu@tradestars.com.br" required autofocus>
+            </div>
+          </div>
+
+          <div class="campo-icone">
+            <label for="senha">Senha</label>
+            <div class="entrada">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <rect x="4" y="10" width="16" height="10" rx="2"/>
+                <path d="M8 10V7a4 4 0 0 1 8 0v3"/>
+              </svg>
+              <input type="password" id="senha" name="senha" autocomplete="current-password" required>
+              <button type="button" class="olho" id="olho" aria-label="Mostrar senha" aria-pressed="false">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12z"/>
+                  <circle cx="12" cy="12" r="2.8"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <label class="lembrar">
+            <input type="checkbox" name="manter" id="manter" checked>
+            <span>Manter conectado</span>
           </label>
-          <label class="campo">
-            <span>Senha</span>
-            <input type="password" name="senha" autocomplete="current-password" required>
-          </label>
+
           <p class="erro" id="erro" role="alert"></p>
-          <button class="botao" type="submit" id="enviar">Entrar</button>
+
+          <button class="botao-acesso" type="submit" id="enviar">
+            <span id="rotulo">Acessar o Hub</span>
+            <span class="seta" aria-hidden="true">→</span>
+          </button>
         </form>
 
-        <p class="rodape">Não tem acesso? Fale com a gestão para liberarem seu login.</p>
+        <p class="restrito">Acesso restrito ao time TradeStars</p>
       </div>
     </main>
+
   </div>
 
   <script src="/login.js" type="module"></script>

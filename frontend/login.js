@@ -1,6 +1,9 @@
 const form = document.getElementById('form');
 const erro = document.getElementById('erro');
 const enviar = document.getElementById('enviar');
+const rotulo = document.getElementById('rotulo');
+const senha = document.getElementById('senha');
+const olho = document.getElementById('olho');
 
 // Vídeo só onde ele não atrapalha: tela grande, sem economia de dados e sem
 // preferência por menos movimento. Nos outros casos fica o poster, que já é um
@@ -17,18 +20,30 @@ function ligarFundo() {
   video.play().catch(() => {}); // autoplay bloqueado: o poster continua valendo
 }
 
+olho.addEventListener('click', () => {
+  const mostrando = senha.type === 'text';
+  senha.type = mostrando ? 'password' : 'text';
+  olho.setAttribute('aria-pressed', String(!mostrando));
+  olho.setAttribute('aria-label', mostrando ? 'Mostrar senha' : 'Ocultar senha');
+  senha.focus();
+});
+
 form.addEventListener('submit', async (ev) => {
   ev.preventDefault();
   erro.textContent = '';
   enviar.disabled = true;
-  enviar.textContent = 'Entrando…';
+  rotulo.textContent = 'Acessando…';
 
   const dados = new FormData(form);
   try {
     const res = await fetch('/api/login', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ email: dados.get('email'), senha: dados.get('senha') }),
+      body: JSON.stringify({
+        email: dados.get('email'),
+        senha: dados.get('senha'),
+        manterConectado: dados.get('manter') === 'on',
+      }),
     });
     if (res.ok) {
       location.href = '/';
@@ -40,7 +55,7 @@ form.addEventListener('submit', async (ev) => {
     erro.textContent = 'Sem conexão com o servidor.';
   }
   enviar.disabled = false;
-  enviar.textContent = 'Entrar';
+  rotulo.textContent = 'Acessar o Hub';
 });
 
 ligarFundo();

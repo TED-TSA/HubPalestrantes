@@ -2,7 +2,9 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { gerarHash, conferirSenha, senhaAceitavel } from '../server/auth/senha.js';
 import { lerCookies, montarCookie } from '../server/auth/cookie.js';
-import { criarSessao, lerSessao, destruirSessao, DURACAO_MS } from '../server/auth/sessao.js';
+import {
+  criarSessao, lerSessao, destruirSessao, DURACAO_MS, DURACAO_LONGA_MS,
+} from '../server/auth/sessao.js';
 import { abrirBanco } from '../server/data/db.js';
 import * as usuarios from '../server/data/usuarios.js';
 
@@ -65,6 +67,24 @@ test('sessão expirada é rejeitada', () => {
   const { db, u } = bancoComUsuario();
   const id = criarSessao(db, u.id, Date.now() - DURACAO_MS * 2);
   assert.equal(lerSessao(db, id), null);
+});
+
+test('manter conectado sobrevive ao prazo da sessão curta', () => {
+  const { db, u } = bancoComUsuario();
+  const curta = criarSessao(db, u.id);
+  const longa = criarSessao(db, u.id, Date.now(), DURACAO_LONGA_MS);
+  const daquiTrezeHoras = Date.now() + 13 * 60 * 60 * 1000;
+  assert.equal(lerSessao(db, curta, daquiTrezeHoras), null);
+  assert.ok(lerSessao(db, longa, daquiTrezeHoras));
+});
+
+test('a renovação respeita a duração escolhida no login', () => {
+  const { db, u } = bancoComUsuario();
+  const longa = criarSessao(db, u.id, Date.now(), DURACAO_LONGA_MS);
+  // Uma requisição qualquer renova a sessão; ela não pode encolher para 12h.
+  lerSessao(db, longa);
+  const validade = Date.parse(db.prepare('SELECT expira_em FROM sessoes WHERE id = ?').get(longa).expira_em);
+  assert.ok(validade - Date.now() > DURACAO_MS, 'a sessão longa encolheu na renovação');
 });
 
 test('sessão destruída e token inventado são rejeitados', () => {
