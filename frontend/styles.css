@@ -260,6 +260,9 @@ body {
 .palco .fundo {
   position: absolute; inset: 0; width: 100%; height: 100%;
   object-fit: cover; opacity: .55;
+  /* O arquivo já vem em preto e branco; o filtro garante o mesmo resultado se
+     um dia trocarem o vídeo por um colorido. */
+  filter: grayscale(1);
 }
 /* Véu: escurece o vídeo de baixo para cima, deixando o formulário legível sem
    precisar de uma caixa opaca por cima. */
