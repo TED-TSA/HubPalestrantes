@@ -5,18 +5,35 @@ const rotulo = document.getElementById('rotulo');
 const senha = document.getElementById('senha');
 const olho = document.getElementById('olho');
 
-// Vídeo só onde ele não atrapalha: tela grande, sem economia de dados e sem
+// Um palestrante por acesso, sorteado. Emendar os cinco num arquivo só daria
+// perto de 10 MB por login; assim cada acesso baixa um vídeo e ainda muda de
+// rosto. Para adicionar ou remover alguém, mexa só nesta lista — os arquivos
+// são <slug>.mp4 e <slug>.jpg em public/login.
+const FUNDOS = [
+  { slug: 'bam', nome: 'Bam' },
+  { slug: 'elidiano', nome: 'Elidiano' },
+  { slug: 'luiz-hota', nome: 'Luiz Hota' },
+  { slug: 'siqueira', nome: 'Siqueira' },
+  { slug: 'tonho', nome: 'Tonho' },
+];
+
+// O vídeo só entra onde não atrapalha: tela grande, sem economia de dados e sem
 // preferência por menos movimento. Nos outros casos fica o poster, que já é um
 // frame do próprio vídeo — mesma imagem, sem baixar megabytes.
 function ligarFundo() {
+  const video = document.getElementById('fundo');
+  const quem = FUNDOS[Math.floor(Math.random() * FUNDOS.length)];
+  video.poster = `/public/login/${quem.slug}.jpg`;
+  // Credita quem está na tela: a filmagem é de gente da casa, não banco de imagem.
+  document.getElementById('credito').textContent = quem.nome;
+
   const conexao = navigator.connection;
   const cara = conexao && (conexao.saveData || /(^|-)2g$/.test(conexao.effectiveType ?? ''));
   const grande = window.matchMedia('(min-width: 900px)').matches;
   const quieto = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   if (!grande || quieto || cara) return;
 
-  const video = document.getElementById('fundo');
-  video.src = '/public/login/fundo.mp4';
+  video.src = `/public/login/${quem.slug}.mp4`;
   video.play().catch(() => {}); // autoplay bloqueado: o poster continua valendo
 }
 

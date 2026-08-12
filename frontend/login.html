@@ -10,10 +10,11 @@
   <div class="cartao">
 
     <aside class="vitrine">
-      <!-- O src do vídeo é anexado pelo login.js só quando vale a pena: em tela
-           grande, sem economia de dados e sem preferência por menos movimento.
-           Nos outros casos fica o poster, que é um frame do próprio vídeo. -->
-      <video class="vitrine-video" id="fundo" poster="/public/login/fundo.jpg"
+      <!-- O login.js sorteia um palestrante e preenche poster e src. O src só
+           entra quando vale a pena: tela grande, sem economia de dados e sem
+           preferência por menos movimento. Nos outros casos fica só o poster,
+           que é um frame do próprio vídeo. -->
+      <video class="vitrine-video" id="fundo"
              autoplay muted loop playsinline aria-hidden="true"></video>
       <div class="vitrine-veu"></div>
 
@@ -33,7 +34,7 @@
 
         <div class="rodape">
           <span>© 2026 TradeStars</span>
-          <span>Gala 2025</span>
+          <span id="credito"></span>
         </div>
       </div>
     </aside>
