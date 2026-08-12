@@ -94,6 +94,20 @@ function foto(classe, slug, nome, extra = '') {
     alt="${esc(nome)}" data-iniciais="${esc(iniciais(nome))}" ${extra}>`;
 }
 
+// Quem subiu ao palco naquele evento. Cinco cabem na largura do card; a partir
+// do sexto mostra quatro e resume o resto em "+N" — trocar um rosto por "+1"
+// seria pior do que mostrar os cinco.
+function elenco(instrutores) {
+  if (!instrutores?.length) return '';
+  const mostra = instrutores.slice(0, instrutores.length <= 5 ? 5 : 4);
+  const resto = instrutores.length - mostra.length;
+  return `<div class="elenco">
+    ${mostra.map((i) => foto('rosto', i.slug, i.instrutor,
+      `title="${esc(i.instrutor)} · ${i.total} leads · ${i.vendas} vendas"`)).join('')}
+    ${resto > 0 ? `<span class="rosto mais">+${resto}</span>` : ''}
+  </div>`;
+}
+
 /* ---------------- Topo ---------------- */
 
 function renderMenu() {
@@ -148,6 +162,7 @@ async function telaHome() {
       ${eventos.map((e) => `
         <a class="card-evento" href="#/evento/${encodeURIComponent(e.slug)}">
           ${tituloEvento(e.evento)}
+          ${elenco(e.instrutores)}
           <div class="metricas">
             ${metrica(e.total, 'leads')}
             <span class="fio"></span>
@@ -158,6 +173,8 @@ async function telaHome() {
           <div class="barra-conv"><i style="width:${pct(e.taxaConversao)}"></i></div>
         </a>`).join('')}
     </div>`;
+
+  tratarFotosQuebradas(app);
 }
 
 /* ---------------- Evento ---------------- */

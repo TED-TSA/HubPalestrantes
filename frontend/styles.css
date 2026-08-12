@@ -134,6 +134,19 @@ a:hover { color: var(--acento-claro); }
 }
 .ev-nome .num { font-family: var(--dpy); font-size: 26px; line-height: .9; color: var(--fraco); }
 
+/* Quem subiu ao palco naquele evento. As fotos ficam coloridas — mesma exceção
+   do card de instrutor: é rosto de gente, não dado. */
+.elenco { display: flex; align-items: center; gap: 6px; }
+.elenco .rosto {
+  width: 42px; height: 42px; flex: 0 0 auto; object-fit: cover; object-position: center 22%;
+  border: 1px solid var(--borda-viva); background: var(--surface-alta);
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--dpy); font-size: 12px; letter-spacing: .04em; color: var(--fraco);
+  transition: border-color .18s ease;
+}
+.elenco .mais { color: var(--suave); font-size: 13px; }
+.card-evento:hover .elenco .rosto { border-color: var(--acento); }
+
 .metricas {
   display: flex; align-items: flex-end;
   margin: 0 -26px; padding: 20px 26px 22px; border-top: 1px solid var(--borda-fina);

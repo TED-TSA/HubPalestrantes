@@ -43,7 +43,9 @@ export async function listarEventos(deps, usuario) {
     .map(([evento, ls]) => ({
       evento, slug: slug(evento),
       ...resumoEvento(ls),
-      instrutores: [...new Set(ls.map((l) => l.instrutor))],
+      // Mesmo formato do detalhe (nome, slug e métricas): o card da home precisa
+      // do slug para achar a foto, e os números alimentam o tooltip.
+      instrutores: resumoInstrutores(ls),
     }))
     .sort((a, b) => b.total - a.total);
 }
