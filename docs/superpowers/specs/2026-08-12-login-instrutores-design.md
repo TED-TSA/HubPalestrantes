@@ -27,7 +27,7 @@ entrega fecha o acesso e personaliza a experiência:
 | Cadastro | Tela de admin no próprio Hub | Arquivo no repo; tabela no BigQuery |
 | Persistência | SQLite via `node:sqlite` (`hub.db`) | JSON em disco (corrompe); BigQuery (warehouse não é base transacional) |
 | Vínculo instrutor↔dados | Escolha guiada pelos `Conexao` reais | Texto livre (erro de grafia); deduzir do email (quebra em nome composto) |
-| Tema | Black fixo no app inteiro | Só o login; black com toggle de claro |
+| Tema | ~~Black fixo no app inteiro~~ → **claro e escuro, com botão no topo** (revisto em 12/08) | Só o login |
 | Vídeo do login | Vídeo no desktop, imagem estática no celular | Vídeo sempre (dados + autoplay do iOS) |
 | Visibilidade | Instrutor vê só os leads dele | Ver o evento todo; ver só o total do evento |
 
@@ -141,9 +141,15 @@ Botão no topo; destrói a sessão no banco e limpa o cookie.
 
 ## 8. Visual — black
 
-- Paleta **black fixa**: o bloco `@media (prefers-color-scheme: dark)` e as variáveis claras saem
-  do `styles.css`. Fundo quase preto, superfícies elevadas por um tom, bordas sutis, texto
-  off-white, um único acento. O verde do selo de venda permanece.
+- **Dois temas.** O escuro continua sendo o padrão e a identidade do produto; o claro entrou depois
+  (12/08) com um botão no topo. O tema efetivo é resolvido por um script inline no `<head>`, que lê
+  a escolha salva ou cai na preferência do sistema — assim a página nasce na cor certa em vez de
+  piscar escura antes de virar clara.
+- Fundo quase preto, superfícies elevadas por um tom, bordas sutis, texto off-white, um único
+  acento. O verde do selo de venda permanece.
+- No tema claro o âmbar de **texto e traço** escurece para `#96660a`: o `#e8b44a` sobre branco fica
+  em 1,8:1, ilegível. O âmbar vivo permanece nos **preenchimentos**, que levam texto escuro por
+  cima. São dois tokens distintos por isso.
 - Tipografia com mais peso e `letter-spacing` negativo nos números.
 - Fotos seguem em grayscale ganhando cor no hover, como já são hoje.
 - **Login:** `<video autoplay muted loop playsinline>` cobrindo a viewport, com overlay escuro

@@ -166,12 +166,25 @@ function renderMenu() {
     </div>
     <span class="fio-vertical"></span>
     ${admin ? '<a class="link-topo" href="#/instrutores">Instrutores</a><span class="fio-vertical"></span>' : ''}
+    <button class="link-topo" type="button" id="tema">${rotuloTema()}</button>
+    <span class="fio-vertical"></span>
     <button class="link-topo" type="button" id="sair">Sair</button>`;
   tratarFotosQuebradas(menu);
+  document.getElementById('tema').addEventListener('click', alternarTema);
   document.getElementById('sair').addEventListener('click', async () => {
     await fetch('/api/logout', { method: 'POST' });
     location.href = '/login';
   });
+}
+
+// O botão mostra o tema para onde vai, não o que está valendo.
+const rotuloTema = () => (document.documentElement.dataset.tema === 'claro' ? 'Escuro' : 'Claro');
+
+function alternarTema() {
+  const novo = document.documentElement.dataset.tema === 'claro' ? 'escuro' : 'claro';
+  document.documentElement.dataset.tema = novo;
+  localStorage.setItem('hub-tema', novo);
+  document.getElementById('tema').textContent = rotuloTema();
 }
 
 /* ---------------- Home ---------------- */

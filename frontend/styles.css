@@ -5,6 +5,9 @@
    Duas regras estruturais do desenho: nada tem canto arredondado, e a fonte
    condensada em caixa alta com muito espaçamento carrega toda a estrutura —
    títulos, rótulos e números. O corpo de texto fica só nos nomes próprios. */
+/* O tema efetivo é resolvido em JS e escrito em data-tema no <html>, num script
+   inline no <head> — assim a página já nasce na cor certa, sem piscar escuro
+   antes de virar claro. */
 :root {
   color-scheme: dark;
 
@@ -21,11 +24,42 @@
   --apagado: #4b4956;
   --acento: #e8b44a;
   --acento-claro: #f5d08a;
+  /* Âmbar de preenchimento: sempre o vivo, porque leva texto escuro por cima.
+     O --acento acima é o de texto e traço, e no tema claro precisa escurecer
+     para ter contraste sobre branco. */
+  --acento-solido: #e8b44a;
   --venda: #3fd69b;
+  --alerta: #ff9b8a;
+  --sombra-texto: rgba(8, 8, 10, .95);
+  --campo-fundo: rgba(255, 255, 255, .03);
 
   --dpy: Bahnschrift, 'DIN Alternate', 'Segoe UI Variable Display', 'Arial Narrow', system-ui, sans-serif;
   --bdy: 'Segoe UI Variable Text', 'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', sans-serif;
   --mn: ui-monospace, 'Cascadia Mono', Consolas, 'SF Mono', Menlo, monospace;
+}
+
+:root[data-tema="claro"] {
+  color-scheme: light;
+
+  --bg: #f2efe9;
+  --surface: #ffffff;
+  --surface-alta: #f7f5f0;
+  --surface-hover: #fbfaf7;
+  --borda: #e0dbd1;
+  --borda-fina: #ece8e0;
+  --borda-viva: #c4bdb0;
+  --texto: #14130f;
+  --suave: #56534c;
+  --fraco: #7a766d;
+  --apagado: #837e73;
+  /* #e8b44a sobre branco fica em 1,8:1 — ilegível como texto. Este âmbar
+     escuro passa de 4,5:1 e mantém a mesma família de cor. */
+  --acento: #96660a;
+  --acento-claro: #7d5405;
+  --venda: #0a7a52;
+  --alerta: #b3311c;
+  --sombra-texto: rgba(255, 255, 255, .95);
+  --campo-fundo: rgba(0, 0, 0, .025);
 }
 
 * { box-sizing: border-box; }
@@ -50,7 +84,7 @@ a:hover { color: var(--acento-claro); }
 }
 .marca-bloco { display: flex; align-items: center; gap: 12px; }
 .selo-ts {
-  width: 24px; height: 24px; background: var(--acento); color: #0b0b0d;
+  width: 24px; height: 24px; background: var(--acento-solido); color: #0b0b0d;
   font-family: var(--dpy); font-size: 12px; font-weight: 700;
   display: flex; align-items: center; justify-content: center; flex: 0 0 auto;
 }
@@ -134,12 +168,12 @@ a:hover { color: var(--acento-claro); }
 .ev-nome .sigla {
   font-family: var(--dpy); font-size: 42px; line-height: .9;
   letter-spacing: .005em; text-transform: uppercase; color: var(--texto);
-  text-shadow: 0 2px 16px rgba(8, 8, 10, .9);
+  text-shadow: 0 2px 16px var(--sombra-texto);
 }
 /* Um tom acima do cinza do desenho: ali era fundo liso, aqui é foto. */
 .ev-nome .num {
   font-family: var(--dpy); font-size: 26px; line-height: .9; color: var(--suave);
-  text-shadow: 0 2px 16px rgba(8, 8, 10, .95), 0 0 3px rgba(8, 8, 10, .8);
+  text-shadow: 0 2px 16px var(--sombra-texto), 0 0 3px var(--sombra-texto);
 }
 
 /* Quem subiu ao palco naquele evento, cortado no próprio card. As fotos ficam
@@ -159,7 +193,7 @@ a:hover { color: var(--acento-claro); }
   object-fit: cover; object-position: center 30%;
   background: var(--surface-alta);
   display: flex; align-items: center; justify-content: center;
-  font-family: var(--dpy); font-size: 22px; letter-spacing: .05em; color: #5c5a66;
+  font-family: var(--dpy); font-size: 22px; letter-spacing: .05em; color: var(--fraco);
 }
 .card-evento .mais {
   position: absolute; top: 10px; right: 12px; z-index: 2;
@@ -286,7 +320,7 @@ a:hover { color: var(--acento-claro); }
   /* Fallback de iniciais herda a mesma forma. */
   display: flex; align-items: center; justify-content: center;
   background: var(--surface-alta);
-  font-family: var(--dpy); font-size: 30px; letter-spacing: .06em; color: #5c5a66;
+  font-family: var(--dpy); font-size: 30px; letter-spacing: .06em; color: var(--fraco);
   padding-left: 26%;
 }
 /* O padding acima centra as iniciais na parte visível do recorte; numa <img>
@@ -309,12 +343,12 @@ a:hover { color: var(--acento-claro); }
 .instrutor .nome {
   font-family: var(--dpy); font-size: 22px; line-height: 1;
   text-transform: uppercase; letter-spacing: .02em;
-  text-shadow: 0 1px 12px rgba(8, 8, 10, .85);
+  text-shadow: 0 1px 12px var(--sombra-texto);
 }
 .instrutor .nums { display: flex; align-items: baseline; gap: 7px; }
 .instrutor .nums .n {
   font-family: var(--dpy); font-size: 20px; font-variant-numeric: tabular-nums;
-  text-shadow: 0 1px 12px rgba(8, 8, 10, .85);
+  text-shadow: 0 1px 12px var(--sombra-texto);
 }
 .instrutor .nums .l {
   font-family: var(--dpy); font-size: 9px; letter-spacing: .16em;
@@ -377,7 +411,7 @@ a:hover { color: var(--acento-claro); }
 }
 .card-lead .venda .ponto { width: 6px; height: 6px; border-radius: 50%; background: var(--venda); flex: 0 0 auto; }
 .card-lead .venda .curso {
-  font-size: 12px; color: #cfccd6;
+  font-size: 12px; color: var(--suave);
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 
@@ -405,7 +439,7 @@ a:hover { color: var(--acento-claro); }
 }
 .campo input, .campo select {
   width: 100%; height: 46px; padding: 0 14px;
-  background: rgba(255, 255, 255, .03); color: var(--texto);
+  background: var(--campo-fundo); color: var(--texto);
   border: 1px solid var(--borda); font-size: 14px; font-family: var(--bdy);
   transition: border-color .15s ease;
 }
@@ -413,12 +447,12 @@ a:hover { color: var(--acento-claro); }
 
 .botao {
   height: 46px; padding: 0 22px; cursor: pointer;
-  background: var(--acento); color: #0b0b0d; border: none;
+  background: var(--acento-solido); color: #0b0b0d; border: none;
   font-family: var(--dpy); font-size: 12px; font-weight: 700;
   letter-spacing: .16em; text-transform: uppercase;
   transition: background .15s ease;
 }
-.botao:hover { background: var(--acento-claro); }
+.botao:hover { filter: brightness(1.06); }
 .botao[disabled] { opacity: .5; cursor: default; }
 .botao.discreto {
   background: none; color: var(--suave); border: 1px solid var(--borda);
@@ -426,7 +460,7 @@ a:hover { color: var(--acento-claro); }
 }
 .botao.discreto:hover { border-color: var(--acento); color: var(--acento); background: none; }
 
-.erro { color: #ff9b8a; font-size: 13px; min-height: 20px; margin: 4px 0 0; }
+.erro { color: var(--alerta); font-size: 13px; min-height: 20px; margin: 4px 0 0; }
 .aviso {
   border: 1px solid rgba(232, 180, 74, .3); border-left: 2px solid var(--acento);
   background: rgba(232, 180, 74, .06);
@@ -499,7 +533,7 @@ a:hover { color: var(--acento-claro); }
 }
 .campo-icone .entrada {
   display: flex; align-items: center; gap: 11px;
-  background: rgba(255, 255, 255, .03); border: 1px solid var(--borda);
+  background: var(--campo-fundo); border: 1px solid var(--borda);
   padding: 0 13px; height: 48px; transition: border-color .15s ease;
 }
 .campo-icone .entrada:focus-within { border-color: var(--acento); }
@@ -522,12 +556,12 @@ a:hover { color: var(--acento-claro); }
 .botao-acesso {
   width: 100%; height: 52px; display: flex; align-items: center; justify-content: space-between;
   padding: 0 20px; cursor: pointer;
-  background: var(--acento); color: #0b0b0d; border: none;
+  background: var(--acento-solido); color: #0b0b0d; border: none;
   font-family: var(--dpy); font-size: 13px; font-weight: 700;
   letter-spacing: .18em; text-transform: uppercase;
   transition: background .15s ease;
 }
-.botao-acesso:hover { background: var(--acento-claro); }
+.botao-acesso:hover { filter: brightness(1.06); }
 .botao-acesso[disabled] { opacity: .55; cursor: default; }
 .botao-acesso .seta { transition: transform .18s ease; }
 .botao-acesso:hover .seta { transform: translateX(3px); }
@@ -564,7 +598,7 @@ a:hover { color: var(--acento-claro); }
   text-transform: uppercase; padding: 4px 9px; border: 1px solid var(--borda); color: var(--fraco);
 }
 .etiqueta.admin { color: var(--acento); border-color: rgba(232, 180, 74, .4); }
-.etiqueta.orfao { color: #ff9b8a; border-color: rgba(255, 155, 138, .4); }
+.etiqueta.orfao { color: var(--alerta); border-color: color-mix(in srgb, var(--alerta) 45%, transparent); }
 
 .linha-form { display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end; }
 .linha-form .campo { flex: 1 1 180px; margin-bottom: 0; }
@@ -613,4 +647,38 @@ a:hover { color: var(--acento-claro); }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+}
+
+/* ---------- Ajustes do tema claro ---------- */
+/* O painel do vídeo é sempre uma imagem escura, tema claro ou não. O texto por
+   cima dele fica claro nos dois — se seguisse o token, virava preto no branco
+   e sumia dentro do vídeo. */
+.vitrine, .vitrine h1 { color: #f4f2ee; }
+.vitrine .sub { color: rgba(244, 242, 238, .5); }
+.vitrine .produto { color: #e8b44a; }
+.pontos li { color: #f4f2ee; border-color: rgba(255, 255, 255, .16); }
+.pontos li:first-child { border-top-color: rgba(255, 255, 255, .16); }
+.pontos li::before { color: #e8b44a; }
+.vitrine .rodape { color: rgba(244, 242, 238, .45); }
+/* Mesma lógica: a pastilha "+N" fica sobre foto. */
+.card-evento .mais { color: #f4f2ee; }
+
+/* Os véus escurecem para o texto claro aparecer sobre a foto. No tema claro o
+   texto é escuro, então eles precisam clarear — senão o nome e as métricas
+   ficam pretos sobre um fundo preto. */
+:root[data-tema="claro"] .card-evento::after {
+  background:
+    linear-gradient(0deg, rgba(255, 255, 255, .97) 16%, rgba(255, 255, 255, .62) 30%, rgba(255, 255, 255, 0) 48%),
+    linear-gradient(101deg,
+      var(--surface) 30%, rgba(255, 255, 255, .8) 42%, rgba(255, 255, 255, .25) 56%, rgba(255, 255, 255, 0) 68%);
+}
+:root[data-tema="claro"] .instrutor::after {
+  background:
+    linear-gradient(0deg, rgba(255, 255, 255, .96) 6%, rgba(255, 255, 255, .62) 22%, rgba(255, 255, 255, 0) 42%),
+    linear-gradient(101deg,
+      var(--surface) 32%, rgba(255, 255, 255, .72) 46%, rgba(255, 255, 255, .22) 62%, rgba(255, 255, 255, 0) 76%);
+}
+/* O brilho âmbar do topo pesa demais sobre fundo claro. */
+:root[data-tema="claro"] .conteudo::before {
+  background: radial-gradient(900px 260px at 50% -110px, rgba(232, 180, 74, .16), transparent 70%);
 }

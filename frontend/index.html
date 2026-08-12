@@ -4,6 +4,17 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Hub do Palestrante</title>
+  <!-- Roda antes da folha de estilo para a página já nascer na cor certa. Se
+       ficasse no app.js, ela piscaria escura antes de virar clara. -->
+  <script>
+    (function () {
+      var t = localStorage.getItem('hub-tema');
+      if (t !== 'claro' && t !== 'escuro') {
+        t = matchMedia('(prefers-color-scheme: light)').matches ? 'claro' : 'escuro';
+      }
+      document.documentElement.dataset.tema = t;
+    })();
+  </script>
   <link rel="stylesheet" href="/styles.css">
 </head>
 <body>

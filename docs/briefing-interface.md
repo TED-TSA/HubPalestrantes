@@ -61,8 +61,9 @@ Estas são rígidas. Propostas que dependam delas serão descartadas.
 
 Vale entender antes de mudar — algumas escolhas resolvem problemas concretos.
 
-**Tema black fixo.** Sem tema claro, sem toggle. O suporte a `prefers-color-scheme`
-foi removido de propósito.
+**Dois temas, escuro por padrão.** O claro entrou depois e é a alternativa: o
+desenho nasce no escuro. O tema fica em `data-tema` no `<html>`, resolvido por um
+script inline no `<head>`.
 
 **Paleta:**
 
@@ -247,7 +248,8 @@ foram removidos da interface por decisão do produto** — não trazer de volta.
 
 ## 7. O que está travado
 
-1. Tema escuro; nada de tema claro ou toggle.
+1. O escuro é o tema padrão e a identidade do produto. Existe um tema claro com botão no
+   topo (desde 12/08), mas ele é a alternativa, não o ponto de partida do desenho.
 2. Verde reservado para "vendeu".
 3. Sem valores em R$.
 4. Telefone e e-mail mascarados.
