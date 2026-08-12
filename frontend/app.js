@@ -8,7 +8,9 @@ const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => (
   { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
 ));
 
-const moeda = (v) => (v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+// Os valores em R$ saíram da interface por decisão do produto. O backend ainda
+// calcula valorTotal, então dá para trazer de volta mexendo só aqui.
+const pct = (v) => `${Math.round((v || 0) * 100)}%`;
 
 async function pedir(url, opcoes = {}) {
   const res = await fetch(url, {
@@ -109,7 +111,7 @@ async function telaHome() {
           <div class="metricas">
             ${metrica(e.total, 'leads')}
             ${metrica(e.vendas, 'vendas')}
-            ${metrica(`<span class="pill-venda">${moeda(e.valorTotal)}</span>`, 'gerado')}
+            ${metrica(pct(e.taxaConversao), 'conversão')}
           </div>
         </a>`).join('')}
     </div>`;
@@ -125,7 +127,6 @@ function cardLead(l) {
     ? `<div class="venda" title="${esc(detalhe)}">
          <span class="ponto" aria-hidden="true"></span>
          <span class="curso">${esc(l.curso ?? 'Venda registrada')}</span>
-         ${l.valorPago ? `<span class="valor">${moeda(l.valorPago)}</span>` : ''}
        </div>`
     : '';
   return `<div class="card-lead${l.vendeu ? ' vendeu' : ''}">
@@ -173,7 +174,7 @@ async function telaDetalhe(slug) {
       <div class="metricas">
         ${metrica(d.resumo.total, 'leads')}
         ${metrica(d.resumo.vendas, 'vendas')}
-        ${metrica(`<span class="pill-venda">${moeda(d.resumo.valorTotal)}</span>`, 'gerado')}
+        ${metrica(pct(d.resumo.taxaConversao), 'conversão')}
       </div>
     </div>
     <div class="faixa-instrutores">
