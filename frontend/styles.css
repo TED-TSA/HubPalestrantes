@@ -205,36 +205,78 @@ a:hover { color: var(--acento-claro); }
   text-transform: uppercase; color: var(--fraco); margin-top: 5px;
 }
 
-/* Instrutores do evento (só a gestão vê mais de um). */
-.grade-instrutores { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 14px; }
+/* Instrutores do evento (só a gestão vê mais de um).
+   Mesmo desenho do card de evento, com a foto entrando pela direita cortada na
+   diagonal. Aqui a foto é a única coisa colorida da interface: é o rosto de uma
+   pessoa, e a exceção à regra do preto e branco é proposital. */
+.grade-instrutores { display: grid; grid-template-columns: repeat(auto-fill, minmax(215px, 1fr)); gap: 14px; }
 .instrutor {
-  background: var(--surface); border: 1px solid var(--borda); padding: 14px; cursor: pointer;
-  transition: border-color .18s ease, background .18s ease;
+  position: relative; overflow: hidden; min-height: 172px;
+  display: flex; flex-direction: column; justify-content: space-between;
+  padding: 18px; cursor: pointer;
+  background: var(--surface); border: 1px solid var(--borda);
+  transition: border-color .18s ease;
 }
-.instrutor:hover { border-color: var(--borda-viva); border-top-color: var(--acento); background: var(--surface-hover); }
+.instrutor:hover { border-color: var(--borda-viva); border-top-color: var(--acento); }
 .instrutor.ativo { border-color: var(--acento); border-top-color: var(--acento); }
-.instrutor .foto, .instrutor .avatar-iniciais {
-  aspect-ratio: 1 / 1; width: 100%; object-fit: cover; display: flex;
-  align-items: center; justify-content: center;
-  background: var(--surface-alta); border: 1px solid var(--borda);
-  font-family: var(--dpy); font-size: 28px; letter-spacing: .06em; color: #5c5a66;
-  filter: grayscale(1); transition: filter .25s ease;
+
+/* O fio da diagonal: a mesma forma da foto, em âmbar, 2px à esquerda e por
+   baixo dela. Só a fresta sobra à vista. (Um drop-shadow não serviria: o
+   clip-path recorta o resultado do filter, apagando a sombra junto.) */
+.instrutor::before {
+  content: ''; position: absolute; top: 0; right: 0; bottom: 0; width: 74%;
+  transform: translateX(-2px); z-index: 0;
+  clip-path: polygon(46% 0, 100% 0, 100% 100%, 0 100%);
+  background: rgba(232, 180, 74, .55);
+  transition: transform .3s ease;
 }
-.instrutor:hover .foto, .instrutor.ativo .foto { filter: grayscale(0); }
+.instrutor:hover::before { transform: translateX(-2px) scale(1.04); }
+
+.instrutor .foto {
+  position: absolute; top: 0; right: 0; bottom: 0; width: 74%; z-index: 1;
+  object-fit: cover; object-position: center 22%;
+  /* O corte: a aresta desce da direita para a esquerda, alargando a foto no pé
+     do card. */
+  clip-path: polygon(46% 0, 100% 0, 100% 100%, 0 100%);
+  transition: transform .3s ease;
+  /* Fallback de iniciais herda a mesma forma. */
+  display: flex; align-items: center; justify-content: center;
+  background: var(--surface-alta);
+  font-family: var(--dpy); font-size: 30px; letter-spacing: .06em; color: #5c5a66;
+  padding-left: 26%;
+}
+/* O padding acima centra as iniciais na parte visível do recorte; numa <img>
+   ele encolheria a área do object-fit e deslocaria a foto. */
+.instrutor img.foto { padding: 0; }
+.instrutor:hover .foto { transform: scale(1.04); }
+
+/* Véu em duas camadas: uma pelo pé, senão os rótulos "leads" e "vendas" somem
+   dentro da parte clara da foto; outra pela esquerda, curta o bastante para não
+   dissolver a aresta diagonal, que é o ponto do desenho. */
+.instrutor::after {
+  content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 2;
+  background:
+    linear-gradient(0deg, rgba(8, 8, 10, .94) 4%, rgba(8, 8, 10, .5) 20%, rgba(8, 8, 10, 0) 40%),
+    linear-gradient(101deg,
+      var(--surface) 20%, rgba(19, 19, 23, .5) 33%, rgba(19, 19, 23, .06) 48%, rgba(19, 19, 23, 0) 60%);
+}
+.instrutor .nome, .instrutor .nums { position: relative; z-index: 3; }
+
 .instrutor .nome {
-  font-family: var(--dpy); font-size: 17px; line-height: 1;
-  text-transform: uppercase; letter-spacing: .02em; margin-top: 13px;
+  font-family: var(--dpy); font-size: 22px; line-height: 1;
+  text-transform: uppercase; letter-spacing: .02em;
+  text-shadow: 0 1px 12px rgba(8, 8, 10, .85);
 }
-.instrutor .nums {
-  display: flex; align-items: baseline; gap: 7px;
-  margin-top: 9px; padding-top: 9px; border-top: 1px solid var(--borda);
+.instrutor .nums { display: flex; align-items: baseline; gap: 7px; }
+.instrutor .nums .n {
+  font-family: var(--dpy); font-size: 20px; font-variant-numeric: tabular-nums;
+  text-shadow: 0 1px 12px rgba(8, 8, 10, .85);
 }
-.instrutor .nums .n { font-family: var(--dpy); font-size: 15px; font-variant-numeric: tabular-nums; }
 .instrutor .nums .l {
   font-family: var(--dpy); font-size: 9px; letter-spacing: .16em;
   text-transform: uppercase; color: var(--fraco);
 }
-.instrutor .nums .fio { width: 1px; height: 11px; background: var(--borda); }
+.instrutor .nums .fio { width: 1px; height: 11px; background: var(--borda-viva); }
 
 .legenda { display: flex; align-items: center; gap: 8px; }
 .legenda .ponto { width: 6px; height: 6px; border-radius: 50%; background: var(--venda); }
