@@ -11,6 +11,7 @@ const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => (
 // Os valores em R$ saíram da interface por decisão do produto. O backend ainda
 // calcula valorTotal, então dá para trazer de volta mexendo só aqui.
 const pct = (v) => `${Math.round((v || 0) * 100)}%`;
+const dd = (n) => String(n).padStart(2, '0');
 
 async function pedir(url, opcoes = {}) {
   const res = await fetch(url, {
@@ -27,8 +28,32 @@ async function pedir(url, opcoes = {}) {
 
 const ehAdmin = () => eu?.papel === 'admin';
 
+// Nome de evento é sigla + número ("CXJ 3006"): a sigla identifica, o número é
+// só sequência. O desenho separa os dois pesos.
+function nomeEvento(nome) {
+  const m = String(nome ?? '').trim().match(/^(\S+)\s+(.+)$/);
+  return m ? { sigla: m[1], num: m[2] } : { sigla: String(nome ?? ''), num: '' };
+}
+
+function tituloEvento(nome, classe = 'ev-nome') {
+  const { sigla, num } = nomeEvento(nome);
+  return `<div class="${classe}">
+    <span class="sigla">${esc(sigla)}</span>
+    ${num ? `<span class="num">${esc(num)}</span>` : ''}
+  </div>`;
+}
+
 function metrica(n, l) {
   return `<div class="metrica"><div class="n">${n}</div><div class="l">${l}</div></div>`;
+}
+
+function tituloLinha(texto, conta, extra = '') {
+  return `<div class="titulo-linha">
+    <h2 class="titulo-secao">${esc(texto)}</h2>
+    ${conta !== undefined ? `<span class="titulo-conta">${esc(conta)}</span>` : ''}
+    <span class="titulo-fio"></span>
+    ${extra}
+  </div>`;
 }
 
 function mascararEmail(email) {
@@ -47,21 +72,26 @@ function mascararTelefone(tel) {
 }
 
 function iniciais(nome) {
-  return String(nome).split(/\s+/).slice(0, 2).map((p) => p[0]?.toUpperCase() ?? '').join('');
+  return String(nome ?? '').split(/\s+/).slice(0, 2).map((p) => p[0]?.toUpperCase() ?? '').join('');
 }
 
-// Troca a <img> por um avatar de iniciais quando o arquivo não existe. Feito com
-// listener em vez de onerror inline para não injetar nome de gente em atributo.
+// Troca a <img> por um bloco de iniciais quando o arquivo não existe, mantendo
+// a mesma classe para herdar o estilo. Feito com listener em vez de onerror
+// inline para não injetar nome de gente em atributo.
 function tratarFotosQuebradas(raiz = document) {
   raiz.querySelectorAll('img[data-iniciais]').forEach((img) => {
     img.addEventListener('error', () => {
-      if (img.classList.contains('retrato')) { img.remove(); return; }
-      const div = document.createElement('div');
-      div.className = 'avatar-iniciais';
-      div.textContent = img.dataset.iniciais;
-      img.replaceWith(div);
+      const span = document.createElement('span');
+      span.className = img.className;
+      span.textContent = img.dataset.iniciais;
+      img.replaceWith(span);
     }, { once: true });
   });
+}
+
+function foto(classe, slug, nome, extra = '') {
+  return `<img class="${classe}" src="/public/instrutores/${esc(slug)}.jpg"
+    alt="${esc(nome)}" data-iniciais="${esc(iniciais(nome))}" ${extra}>`;
 }
 
 /* ---------------- Topo ---------------- */
@@ -69,16 +99,16 @@ function tratarFotosQuebradas(raiz = document) {
 function renderMenu() {
   const admin = ehAdmin();
   menu.innerHTML = `
-    <div class="eu">
-      ${admin ? '' : `<img class="retrato" src="/public/instrutores/${esc(eu.fotoSlug)}.jpg"
-          alt="" data-iniciais="${esc(iniciais(eu.nome))}">`}
-      <div>
-        <div class="quem">${esc(eu.nome)}</div>
-        <div class="papel">${admin ? 'Gestão' : 'Instrutor'}</div>
-      </div>
-      ${admin ? '<a class="link-topo" href="#/instrutores">Instrutores</a>' : ''}
-      <button class="link-topo" type="button" id="sair">Sair</button>
-    </div>`;
+    <div class="eu-quem">
+      ${admin
+        ? `<span class="eu-selo">${esc(iniciais(eu.nome))}</span>`
+        : foto('eu-selo', eu.fotoSlug, eu.nome)}
+      <span class="eu-nome">${esc(eu.nome)}</span>
+      <span class="eu-papel">${admin ? 'Gestão' : 'Instrutor'}</span>
+    </div>
+    <span class="fio-vertical"></span>
+    ${admin ? '<a class="link-topo" href="#/instrutores">Instrutores</a><span class="fio-vertical"></span>' : ''}
+    <button class="link-topo" type="button" id="sair">Sair</button>`;
   tratarFotosQuebradas(menu);
   document.getElementById('sair').addEventListener('click', async () => {
     await fetch('/api/logout', { method: 'POST' });
@@ -88,31 +118,44 @@ function renderMenu() {
 
 /* ---------------- Home ---------------- */
 
+function esqueleto() {
+  return `<div class="esqueleto"><div></div><div></div><div></div></div>`;
+}
+
 async function telaHome() {
-  app.innerHTML = '<p class="carregando">Carregando eventos…</p>';
+  app.innerHTML = tituloLinha(ehAdmin() ? 'Todos os eventos' : 'Seus eventos') + esqueleto();
+
   let eventos;
   try { eventos = await pedir('/api/eventos'); }
-  catch { app.innerHTML = '<p class="vazio">Não foi possível carregar os eventos.</p>'; return; }
-
-  if (!eventos.length) {
-    app.innerHTML = ehAdmin()
-      ? '<p class="vazio">Nenhum evento ainda. Assim que os leads caírem, eles aparecem aqui.</p>'
-      : `<p class="vazio">Nenhum lead vinculado a você ainda.<br>
-           Assim que os contatos da sua palestra entrarem no funil, os eventos aparecem aqui.</p>`;
+  catch {
+    app.innerHTML = `<div class="vazio"><h3>Não foi possível carregar</h3>
+      <p>A consulta aos dados falhou. Recarregue a página; se continuar, fale com o time de BI.</p></div>`;
     return;
   }
 
-  app.innerHTML = `
-    <h2 class="titulo-secao">${ehAdmin() ? 'Todos os eventos' : 'Seus eventos'}</h2>
+  if (!eventos.length) {
+    app.innerHTML = tituloLinha(ehAdmin() ? 'Todos os eventos' : 'Seus eventos', '00') + (ehAdmin()
+      ? `<div class="vazio"><h3>Nenhum evento ainda</h3>
+           <p>Assim que os leads das palestras entrarem no funil, os eventos aparecem aqui.</p></div>`
+      : `<div class="vazio"><h3>Nenhuma palestra com lead seu ainda</h3>
+           <p>Assim que os contatos da sua próxima palestra entrarem no sistema, o evento aparece
+              aqui. Se você palestrou nos últimos dias e nada apareceu, fale com o time de BI.</p></div>`);
+    return;
+  }
+
+  app.innerHTML = tituloLinha(ehAdmin() ? 'Todos os eventos' : 'Seus eventos', dd(eventos.length)) + `
     <div class="grade">
       ${eventos.map((e) => `
         <a class="card-evento" href="#/evento/${encodeURIComponent(e.slug)}">
-          <h3>${esc(e.evento)}</h3>
+          ${tituloEvento(e.evento)}
           <div class="metricas">
             ${metrica(e.total, 'leads')}
+            <span class="fio"></span>
             ${metrica(e.vendas, 'vendas')}
+            <span class="fio"></span>
             ${metrica(pct(e.taxaConversao), 'conversão')}
           </div>
+          <div class="barra-conv"><i style="width:${pct(e.taxaConversao)}"></i></div>
         </a>`).join('')}
     </div>`;
 }
@@ -120,8 +163,6 @@ async function telaHome() {
 /* ---------------- Evento ---------------- */
 
 function cardLead(l) {
-  // Curso e valor em uma linha só. O verde já comunica a venda, então o selo
-  // "VENDEU" saiu: ele quebrava linha e dobrava a altura do card.
   const detalhe = [l.curso, l.dataVenda, l.vendedor].filter(Boolean).join(' · ');
   const venda = l.vendeu
     ? `<div class="venda" title="${esc(detalhe)}">
@@ -129,10 +170,12 @@ function cardLead(l) {
          <span class="curso">${esc(l.curso ?? 'Venda registrada')}</span>
        </div>`
     : '';
-  return `<div class="card-lead${l.vendeu ? ' vendeu' : ''}">
+  return `<div class="card-lead">
     <div class="ln">${esc(l.nome)}</div>
-    <div class="lt">${l.telefone ? esc(mascararTelefone(l.telefone)) : 'sem telefone'}</div>
-    ${l.email ? `<div class="lt">${esc(mascararEmail(l.email))}</div>` : ''}
+    <div class="contato">
+      <span>${l.telefone ? esc(mascararTelefone(l.telefone)) : 'sem telefone'}</span>
+      ${l.email ? `<span class="email">${esc(mascararEmail(l.email))}</span>` : ''}
+    </div>
     ${venda}
   </div>`;
 }
@@ -143,12 +186,15 @@ function renderKanban() {
     const leads = filtro ? c.leads.filter((l) => l.instrutorSlug === filtro) : c.leads;
     return `<div class="coluna">
       <h4>
-        <span class="ordem">${String(i + 1).padStart(2, '0')}</span>
+        <span class="ordem">${dd(i + 1)}</span>
         <span class="etapa" title="${esc(c.etapaName)}">${esc(c.etapaName)}</span>
+        <span class="espaco"></span>
         <span class="conta">${leads.length}</span>
       </h4>
+      <div class="coluna-fio"></div>
       <div class="coluna-leads">
-        ${leads.map(cardLead).join('') || '<p class="coluna-vazia">Nenhum lead nesta etapa</p>'}
+        ${leads.map(cardLead).join('')
+          || '<p class="coluna-vazia"><span>Nenhum lead nesta etapa</span></p>'}
       </div>
     </div>`;
   }).join('');
@@ -158,39 +204,66 @@ function renderKanban() {
 }
 
 async function telaDetalhe(slug) {
-  app.innerHTML = '<p class="carregando">Carregando evento…</p>';
+  app.innerHTML = esqueleto();
   let d;
   try { d = await pedir(`/api/eventos/${encodeURIComponent(slug)}`); }
-  catch { app.innerHTML = '<p class="vazio">Evento não encontrado. <a href="#/">Voltar</a></p>'; return; }
+  catch {
+    app.innerHTML = `<div class="vazio"><h3>Evento não encontrado</h3>
+      <p>Ele pode ter saído do funil, ou não há lead seu nele. <a href="#/">Voltar aos eventos</a></p></div>`;
+    return;
+  }
   estado = { detalhe: d, filtroInstrutor: null };
 
-  // O filtro só existe para quem enxerga mais de um instrutor.
-  const podeFiltrar = ehAdmin() && d.instrutores.length > 1;
+  const admin = ehAdmin();
+  const podeFiltrar = admin && d.instrutores.length > 1;
+  const meu = d.instrutores[0];
+
+  const legenda = `<div class="legenda"><span class="ponto"></span><span>Vendeu</span></div>`;
 
   app.innerHTML = `
-    <a class="voltar" href="#/">← ${ehAdmin() ? 'Eventos' : 'Seus eventos'}</a>
+    <a class="voltar" href="#/">← ${admin ? 'Eventos' : 'Seus eventos'}</a>
     <div class="cabecalho-evento">
-      <h2>${esc(d.evento)}</h2>
+      ${tituloEvento(d.evento)}
       <div class="metricas">
         ${metrica(d.resumo.total, 'leads')}
+        <span class="fio"></span>
         ${metrica(d.resumo.vendas, 'vendas')}
+        <span class="fio"></span>
         ${metrica(pct(d.resumo.taxaConversao), 'conversão')}
       </div>
     </div>
-    <div class="faixa-instrutores">
-      ${d.instrutores.map((ins) => `
-        <div class="instrutor" data-slug="${esc(ins.slug)}">
-          <img class="foto" src="/public/instrutores/${esc(ins.slug)}.jpg"
-               alt="${esc(ins.instrutor)}" data-iniciais="${esc(iniciais(ins.instrutor))}">
-          <div class="nome">${esc(ins.instrutor)}</div>
-          <div class="mini">${ins.total} leads · ${ins.vendas} vendas</div>
-        </div>`).join('')}
-    </div>
-    ${podeFiltrar ? `
-      <div class="filtros">
-        <button id="ftodos" class="on" type="button">Todos</button>
-        <span class="lt">clique num instrutor para filtrar</span>
-      </div>` : ''}
+
+    ${admin ? `
+      ${tituloLinha('Instrutores no palco', `${dd(d.instrutores.length)}${podeFiltrar ? ' · clique para filtrar o quadro' : ''}`)}
+      <div class="grade-instrutores">
+        ${d.instrutores.map((ins) => `
+          <div class="instrutor" data-slug="${esc(ins.slug)}">
+            ${foto('foto', ins.slug, ins.instrutor)}
+            <div class="nome">${esc(ins.instrutor)}</div>
+            <div class="nums">
+              <span class="n">${ins.total}</span><span class="l">leads</span>
+              <span class="fio"></span>
+              <span class="n">${ins.vendas}</span><span class="l">vendas</span>
+            </div>
+          </div>`).join('')}
+      </div>
+      ${tituloLinha('Quadro · todos os instrutores', undefined, legenda)}
+    ` : `
+      <div class="faixa-eu">
+        ${foto('retrato', meu?.slug ?? eu.fotoSlug, meu?.instrutor ?? eu.nome)}
+        <div class="quem">
+          <span class="nome">${esc(meu?.instrutor ?? eu.nome)}</span>
+          <span class="rotulo">Seu recorte deste evento</span>
+        </div>
+        <span class="espaco"></span>
+        <div class="nums">
+          <div><div class="n">${d.resumo.total}</div><div class="l">leads</div></div>
+          <div><div class="n">${d.resumo.vendas}</div><div class="l">vendas</div></div>
+        </div>
+      </div>
+      ${tituloLinha('Quadro', undefined, legenda)}
+    `}
+
     <div id="kanban" class="kanban"></div>`;
 
   tratarFotosQuebradas(app);
@@ -199,14 +272,8 @@ async function telaDetalhe(slug) {
     document.querySelectorAll('.instrutor').forEach((el) => {
       el.addEventListener('click', () => {
         estado.filtroInstrutor = estado.filtroInstrutor === el.dataset.slug ? null : el.dataset.slug;
-        document.getElementById('ftodos').classList.toggle('on', !estado.filtroInstrutor);
         renderKanban();
       });
-    });
-    document.getElementById('ftodos').addEventListener('click', () => {
-      estado.filtroInstrutor = null;
-      document.getElementById('ftodos').classList.add('on');
-      renderKanban();
     });
   }
   renderKanban();
@@ -238,17 +305,17 @@ function lerVinculos(escopo) {
 
 async function telaInstrutores() {
   if (!ehAdmin()) { location.hash = '#/'; return; }
-  app.innerHTML = '<p class="carregando">Carregando cadastro…</p>';
+  app.innerHTML = esqueleto();
 
   let usuarios, nomes;
   try { [usuarios, nomes] = await Promise.all([pedir('/api/admin/usuarios'), pedir('/api/admin/nomes')]); }
-  catch (e) { app.innerHTML = `<p class="vazio">${esc(e.message)}</p>`; return; }
+  catch (e) { app.innerHTML = `<div class="vazio"><h3>Não foi possível carregar</h3><p>${esc(e.message)}</p></div>`; return; }
 
   const orfaos = nomes.filter((n) => !n.dono);
 
   app.innerHTML = `
     <a class="voltar" href="#/">← Eventos</a>
-    <h2 class="titulo-secao" style="margin-top:14px">Instrutores</h2>
+    ${tituloLinha('Instrutores', dd(usuarios.length))}
 
     ${orfaos.length ? `
       <div class="aviso">
@@ -271,23 +338,23 @@ async function telaInstrutores() {
           <label class="campo"><span>Email</span><input type="email" name="email" required></label>
           <label class="campo"><span>Nome</span><input type="text" name="nome" required></label>
           <label class="campo"><span>Senha provisória</span><input type="text" name="senha" required minlength="8"></label>
-          <label class="campo" style="flex:0 0 140px"><span>Perfil</span>
+          <label class="campo" style="flex:0 0 150px"><span>Perfil</span>
             <select name="papel">
               <option value="instrutor">Instrutor</option>
               <option value="admin">Gestão</option>
             </select>
           </label>
         </div>
-        <div style="margin-top:16px">
-          <span class="campo" style="margin-bottom:8px"><span>Nome nos dados</span></span>
+        <div style="margin-top:20px">
+          <span class="campo"><span>Nome nos dados</span></span>
           ${chipsDeNomes(nomes, [], null)}
-          <label class="campo" style="margin-top:10px">
+          <label class="campo" style="margin-top:12px">
             <span>Outro nome (separe por vírgula)</span>
             <input type="text" name="outros" placeholder="como aparece no campo Conexão">
           </label>
         </div>
         <p class="erro" id="erro-novo" role="alert"></p>
-        <button class="botao" type="submit" style="width:auto">Cadastrar</button>
+        <button class="botao" type="submit">Cadastrar</button>
       </form>
     </div>
 
@@ -295,9 +362,7 @@ async function telaInstrutores() {
       <h3>Cadastrados</h3>
       <table class="tabela">
         <thead><tr><th>Nome</th><th>Email</th><th>Perfil</th><th>Nome nos dados</th><th></th></tr></thead>
-        <tbody>
-          ${usuarios.map((u) => linhaUsuario(u, nomes)).join('')}
-        </tbody>
+        <tbody>${usuarios.map((u) => linhaUsuario(u, nomes)).join('')}</tbody>
       </table>
     </div>`;
 
@@ -308,9 +373,9 @@ function linhaUsuario(u, nomes) {
   if (editando === u.id) {
     return `<tr data-id="${u.id}"><td colspan="5">
       <form class="edicao" data-id="${u.id}">
-        <p class="explica" style="margin-bottom:10px">Vínculos de <strong>${esc(u.nome)}</strong></p>
+        <p class="explica">Vínculos de <strong>${esc(u.nome)}</strong></p>
         ${chipsDeNomes(nomes, u.vinculos, u.id)}
-        <label class="campo" style="margin-top:10px">
+        <label class="campo" style="margin-top:12px">
           <span>Outro nome (separe por vírgula)</span>
           <input type="text" name="outros" value="">
         </label>
@@ -324,7 +389,7 @@ function linhaUsuario(u, nomes) {
   }
   return `<tr data-id="${u.id}" ${u.ativo ? '' : 'class="inativo"'}>
     <td>${esc(u.nome)}${u.ativo ? '' : ' <span class="etiqueta">inativo</span>'}</td>
-    <td class="lt">${esc(u.email)}</td>
+    <td class="mono">${esc(u.email)}</td>
     <td><span class="etiqueta ${u.papel === 'admin' ? 'admin' : ''}">${u.papel === 'admin' ? 'Gestão' : 'Instrutor'}</span></td>
     <td>${u.vinculos.length
       ? u.vinculos.map((v) => esc(v)).join(', ')
@@ -404,7 +469,7 @@ function ligarAdmin() {
 
 function telaTrocaSenha() {
   app.innerHTML = `
-    <div class="painel" style="max-width:440px;margin:8vh auto 0">
+    <div class="painel" style="max-width:430px;margin:6vh auto 0">
       <h3>Defina sua senha</h3>
       <p class="explica">Você entrou com uma senha provisória. Escolha uma nova para continuar.</p>
       <form id="troca">
@@ -413,7 +478,7 @@ function telaTrocaSenha() {
         <label class="campo"><span>Nova senha</span>
           <input type="password" name="novaSenha" autocomplete="new-password" required minlength="8"></label>
         <p class="erro" id="erro-troca" role="alert"></p>
-        <button class="botao" type="submit">Salvar senha</button>
+        <button class="botao" type="submit" style="width:100%">Salvar senha</button>
       </form>
     </div>`;
 
@@ -439,7 +504,6 @@ function rotear() {
   if (eu.precisaTrocarSenha) return telaTrocaSenha();
   const hash = location.hash || '#/';
   const evento = hash.match(/^#\/evento\/(.+)$/);
-  app.classList.toggle('amplo', !!evento);
   if (evento) return telaDetalhe(decodeURIComponent(evento[1]));
   if (hash === '#/instrutores') return telaInstrutores();
   return telaHome();
