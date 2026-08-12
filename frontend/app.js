@@ -118,14 +118,21 @@ async function telaHome() {
 /* ---------------- Evento ---------------- */
 
 function cardLead(l) {
-  const selo = l.vendeu
-    ? `<div class="selo">VENDEU <small>· ${esc(l.curso ?? '')}${l.valorPago ? ' · ' + moeda(l.valorPago) : ''}</small></div>`
+  // Curso e valor em uma linha só. O verde já comunica a venda, então o selo
+  // "VENDEU" saiu: ele quebrava linha e dobrava a altura do card.
+  const detalhe = [l.curso, l.dataVenda, l.vendedor].filter(Boolean).join(' · ');
+  const venda = l.vendeu
+    ? `<div class="venda" title="${esc(detalhe)}">
+         <span class="ponto" aria-hidden="true"></span>
+         <span class="curso">${esc(l.curso ?? 'Venda registrada')}</span>
+         ${l.valorPago ? `<span class="valor">${moeda(l.valorPago)}</span>` : ''}
+       </div>`
     : '';
-  return `<div class="card-lead">
+  return `<div class="card-lead${l.vendeu ? ' vendeu' : ''}">
     <div class="ln">${esc(l.nome)}</div>
     <div class="lt">${l.telefone ? esc(mascararTelefone(l.telefone)) : 'sem telefone'}</div>
     ${l.email ? `<div class="lt">${esc(mascararEmail(l.email))}</div>` : ''}
-    ${selo}
+    ${venda}
   </div>`;
 }
 
@@ -136,10 +143,12 @@ function renderKanban() {
     return `<div class="coluna">
       <h4>
         <span class="ordem">${String(i + 1).padStart(2, '0')}</span>
-        <span class="etapa">${esc(c.etapaName)}</span>
+        <span class="etapa" title="${esc(c.etapaName)}">${esc(c.etapaName)}</span>
         <span class="conta">${leads.length}</span>
       </h4>
-      ${leads.map(cardLead).join('') || '<div class="lt" style="padding:6px 4px">—</div>'}
+      <div class="coluna-leads">
+        ${leads.map(cardLead).join('') || '<p class="coluna-vazia">Nenhum lead nesta etapa</p>'}
+      </div>
     </div>`;
   }).join('');
   document.querySelectorAll('.instrutor').forEach((el) => {
@@ -429,6 +438,7 @@ function rotear() {
   if (eu.precisaTrocarSenha) return telaTrocaSenha();
   const hash = location.hash || '#/';
   const evento = hash.match(/^#\/evento\/(.+)$/);
+  app.classList.toggle('amplo', !!evento);
   if (evento) return telaDetalhe(decodeURIComponent(evento[1]));
   if (hash === '#/instrutores') return telaInstrutores();
   return telaHome();

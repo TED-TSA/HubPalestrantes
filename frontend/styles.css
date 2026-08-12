@@ -66,6 +66,7 @@ body {
 .eu .papel { font-size: 11px; color: var(--suave); text-transform: uppercase; letter-spacing: .1em; }
 
 .link-topo {
+  background: none; font-family: var(--corpo); cursor: pointer;
   color: var(--suave); text-decoration: none; font-size: 13px;
   padding: 6px 10px; border-radius: 999px; border: 1px solid transparent;
   transition: color .15s ease, border-color .15s ease;
@@ -75,6 +76,9 @@ body {
 
 /* ---------- Conteúdo ---------- */
 .conteudo { max-width: 1240px; margin: 0 auto; padding: 32px 28px 64px; }
+/* A tela do evento respira mais largo: o quadro é a peça principal ali e ganha
+   com a tela inteira, enquanto a home continua na largura de leitura. */
+.conteudo.amplo { max-width: 1720px; }
 .titulo-secao {
   font-size: 12px; text-transform: uppercase; letter-spacing: .16em;
   color: var(--suave); margin: 0 0 18px;
@@ -176,37 +180,93 @@ body {
 .filtros button.on { background: var(--acento-fraco); border-color: var(--acento); color: var(--acento); }
 
 /* ---------- Kanban ---------- */
-.kanban { display: flex; gap: 16px; overflow-x: auto; padding-bottom: 14px; align-items: flex-start; }
+/* As colunas dividem a largura em vez de terem tamanho fixo: com poucas etapas
+   o quadro preenche a tela e não sobra barra de rolagem. O min-width segura a
+   legibilidade — a partir de umas seis etapas o quadro volta a rolar de lado,
+   que é melhor do que espremer os cards. */
+/* stretch, e não flex-start: as colunas ficam todas da mesma altura e o
+   conjunto lê como um quadro, em vez de um serrilhado. */
+.kanban {
+  display: flex; gap: 14px; align-items: stretch;
+  overflow-x: auto; padding-bottom: 14px;
+  scrollbar-width: thin; scrollbar-color: var(--borda-viva) transparent;
+}
 .coluna {
-  flex: 0 0 288px;
+  flex: 1 1 0; min-width: 232px;
+  display: flex; flex-direction: column;
   background: var(--surface); border: 1px solid var(--borda);
-  border-radius: var(--raio); padding: 14px;
+  border-radius: var(--raio); padding: 6px 10px 10px;
+  min-height: 260px; max-height: calc(100vh - 300px);
 }
 .coluna h4 {
-  margin: 2px 4px 14px; font-size: 12px; text-transform: uppercase; letter-spacing: .1em;
-  color: var(--suave); display: flex; align-items: baseline; gap: 8px;
+  position: sticky; top: 0; z-index: 1;
+  margin: 0 0 10px; padding: 12px 4px 10px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--borda);
+  font-size: 12px; text-transform: uppercase; letter-spacing: .1em;
+  color: var(--suave); display: flex; align-items: center; gap: 9px;
 }
 /* O número não é enfeite: o funil é ordenado por EtapaId, então ele diz em que
    altura do funil o instrutor está olhando. */
-.coluna h4 .ordem { font-family: var(--display); color: var(--acento); opacity: .75; letter-spacing: .04em; }
-.coluna h4 .etapa { flex: 1; }
-.coluna h4 .conta { font-family: var(--display); color: var(--texto); font-size: 14px; }
+.coluna h4 .ordem { font-family: var(--display); color: var(--acento); opacity: .7; letter-spacing: .04em; }
+.coluna h4 .etapa {
+  flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.coluna h4 .conta {
+  font-family: var(--display); font-size: 12px; color: var(--texto);
+  background: rgba(255, 255, 255, .07); border-radius: 999px;
+  padding: 2px 8px; letter-spacing: .02em;
+}
+.coluna-leads {
+  overflow-y: auto; padding: 2px 4px 0;
+  scrollbar-width: thin; scrollbar-color: var(--borda-viva) transparent;
+}
+.coluna-vazia {
+  margin: 6px 0 4px; padding: 14px 0; text-align: center;
+  font-size: 12px; color: rgba(139, 136, 148, .6);
+  border: 1px dashed var(--borda); border-radius: 10px;
+}
+
+.kanban::-webkit-scrollbar, .coluna-leads::-webkit-scrollbar { height: 8px; width: 8px; }
+.kanban::-webkit-scrollbar-track, .coluna-leads::-webkit-scrollbar-track { background: transparent; }
+.kanban::-webkit-scrollbar-thumb, .coluna-leads::-webkit-scrollbar-thumb {
+  background: var(--borda-viva); border-radius: 999px;
+}
 
 .card-lead {
   background: var(--surface-alta); border: 1px solid var(--borda);
-  border-radius: 10px; padding: 11px 13px; margin-bottom: 10px;
-  transition: border-color .15s ease;
+  border-radius: 10px; padding: 10px 12px; margin-bottom: 8px;
+  transition: border-color .15s ease, background .15s ease;
 }
-.card-lead:hover { border-color: var(--borda-viva); }
-.card-lead .ln { font-weight: 600; font-size: 14px; }
-.card-lead .lt { font-size: 12px; color: var(--suave); margin-top: 3px; font-variant-numeric: tabular-nums; }
-.selo {
-  display: inline-block; margin-top: 9px; font-size: 11px; font-weight: 700;
-  color: var(--venda); background: rgba(63, 214, 155, .12);
-  border: 1px solid rgba(63, 214, 155, .3);
-  padding: 3px 9px; border-radius: 999px; letter-spacing: .06em;
+.card-lead:hover { border-color: var(--borda-viva); background: #202027; }
+.card-lead.vendeu { border-color: rgba(63, 214, 155, .26); }
+.card-lead .ln { font-weight: 600; font-size: 13.5px; line-height: 1.3; }
+.card-lead .lt {
+  font-size: 11.5px; color: var(--suave); margin-top: 2px; line-height: 1.4;
+  font-variant-numeric: tabular-nums;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
-.selo small { font-weight: 500; opacity: .85; letter-spacing: 0; }
+
+/* Venda em uma linha só: um ponto verde, o curso e o valor à direita. O antigo
+   selo "VENDEU" quebrava linha e dobrava a altura do card — e era redundante,
+   porque o verde já diz que vendeu. */
+.card-lead .venda {
+  display: flex; align-items: center; gap: 7px;
+  margin-top: 8px; padding-top: 7px; border-top: 1px solid var(--borda);
+  font-size: 11.5px;
+}
+.card-lead .venda .ponto {
+  flex: 0 0 auto; width: 6px; height: 6px; border-radius: 50%;
+  background: var(--venda); box-shadow: 0 0 8px rgba(63, 214, 155, .55);
+}
+.card-lead .venda .curso {
+  flex: 1; min-width: 0; color: var(--suave);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.card-lead .venda .valor {
+  flex: 0 0 auto; color: var(--venda); font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
 
 /* ---------- Formulários (login, troca de senha, admin) ---------- */
 .campo { display: block; margin-bottom: 14px; }
@@ -436,7 +496,7 @@ body {
   .eu .quem { display: none; }
   .cabecalho-evento { flex-direction: column; align-items: flex-start; gap: 14px; }
   .cabecalho-evento h2 { font-size: 27px; }
-  .coluna { flex-basis: 84vw; }
+  .coluna { min-width: 78vw; max-height: none; }
   .entrada { padding: 32px 20px 8vh; }
   .tabela, .tabela tbody, .tabela tr, .tabela td { display: block; width: 100%; }
   .tabela thead { display: none; }
