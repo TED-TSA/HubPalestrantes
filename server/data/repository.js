@@ -20,6 +20,14 @@ export async function carregarTudo(deps) {
   });
 }
 
+// O recorte por instrutor acontece aqui, antes de qualquer coisa virar JSON.
+// Se isto vivesse no frontend, os leads dos colegas viajariam no payload.
+function visiveisPara(leads, usuario) {
+  if (!usuario || usuario.papel === 'admin') return leads;
+  const meus = new Set(usuario.vinculos ?? []);
+  return leads.filter((l) => meus.has(l.instrutor));
+}
+
 function agruparPorEvento(leads) {
   const grupos = new Map();
   for (const l of leads) {
@@ -29,8 +37,8 @@ function agruparPorEvento(leads) {
   return grupos;
 }
 
-export async function listarEventos(deps) {
-  const leads = await carregarTudo(deps);
+export async function listarEventos(deps, usuario) {
+  const leads = visiveisPara(await carregarTudo(deps), usuario);
   return [...agruparPorEvento(leads).entries()]
     .map(([evento, ls]) => ({
       evento, slug: slug(evento),
@@ -40,9 +48,11 @@ export async function listarEventos(deps) {
     .sort((a, b) => b.total - a.total);
 }
 
-export async function detalheEvento(eventoSlug, deps) {
-  const leads = await carregarTudo(deps);
+export async function detalheEvento(eventoSlug, deps, usuario) {
+  const leads = visiveisPara(await carregarTudo(deps), usuario);
   const doEvento = leads.filter((l) => slug(l.evento) === eventoSlug);
+  // Para um instrutor sem lead no evento, ele simplesmente não existe: mesmo 404
+  // de um slug inventado, sem revelar que o evento existe para outra pessoa.
   if (doEvento.length === 0) return { evento: null };
   return {
     evento: doEvento[0].evento,
@@ -50,4 +60,11 @@ export async function detalheEvento(eventoSlug, deps) {
     instrutores: resumoInstrutores(doEvento),
     colunas: montarColunas(doEvento),
   };
+}
+
+// Nomes de instrutor que realmente aparecem nos dados — alimenta a escolha
+// guiada do cadastro, para que ninguém digite a grafia errada.
+export async function nomesDeConexao(deps) {
+  const leads = await carregarTudo(deps);
+  return [...new Set(leads.map((l) => l.instrutor).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'pt-BR'));
 }
