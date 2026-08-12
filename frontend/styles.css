@@ -140,14 +140,16 @@ a:hover { color: var(--acento-claro); }
    coloridas — mesma exceção do card de instrutor: é rosto de gente, não dado.
    O fundo âmbar aparece nas frestas entre as faixas e vira o fio do corte. */
 .card-evento .elenco {
-  position: absolute; top: 0; right: 0; bottom: 0; width: 84%; z-index: 1;
+  position: absolute; top: 0; right: 0; bottom: 0; width: 72%; z-index: 1;
   clip-path: polygon(46% 0, 100% 0, 100% 100%, 0 100%);
   background: rgba(232, 180, 74, .5);
 }
-/* left e width vêm inline: cada foto ocupa a caixa da sua faixa. */
+/* O recorte da faixa fica no invólucro, em coordenadas do card. A foto por
+   dentro anda livre — left e width vêm inline. */
+.card-evento .faixa { position: absolute; inset: 0; }
 .card-evento .rosto {
   position: absolute; top: 0; bottom: 0;
-  object-fit: cover; object-position: center 20%;
+  object-fit: cover; object-position: center 30%;
   background: var(--surface-alta);
   display: flex; align-items: center; justify-content: center;
   font-family: var(--dpy); font-size: 22px; letter-spacing: .05em; color: #5c5a66;

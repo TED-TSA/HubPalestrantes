@@ -110,29 +110,43 @@ function elenco(instrutores) {
   const resto = instrutores.length - mostra.length;
   const n = mostra.length;
 
-  // Cada foto ocupa só a caixa da própria faixa, e não o card inteiro. Se todas
-  // cobrissem tudo, cada faixa mostraria o pedaço da foto que calhasse de cair
-  // naquele x — e os rostos sairiam cortados ao meio.
-  const estilos = mostra.map((ins, k) => {
+  // Altura em que o rosto costuma cair na foto, contada do topo.
+  const ROSTO = 0.28;
+
+  const faixas = mostra.map((ins, k) => {
     const t0 = CORTE + (k * (100 - CORTE)) / n;
     const t1 = CORTE + ((k + 1) * (100 - CORTE)) / n;
     const ultima = k === n - 1;
-    const esquerda = t0 - CORTE;
-    const largura = (ultima ? 100 : t1) - esquerda;
-    // Coordenadas do paralelogramo dentro da caixa da foto, em % dela.
-    const alto = (CORTE / largura) * 100;
-    const baixo = ultima ? 100 : ((t1 - t0) / largura) * 100;
-    // 1px de folga nas arestas inclinadas: é a fresta que deixa o âmbar do
-    // fundo aparecer e vira o fio do corte.
-    const dirAlto = ultima ? '100%' : 'calc(100% - 1px)';
-    const dirBaixo = ultima ? '100%' : `calc(${baixo}% - 1px)`;
-    return `left:${esquerda}%;width:${largura}%;`
-      + `clip-path:polygon(calc(${alto}% + 1px) 0, ${dirAlto} 0, ${dirBaixo} 100%, 1px 100%)`;
+
+    // O recorte fica no invólucro, em coordenadas do card; a foto por dentro se
+    // move livre. O 1px de folga nas arestas inclinadas é a fresta que deixa o
+    // âmbar do fundo aparecer e vira o fio do corte.
+    const recorte = ultima
+      ? `polygon(calc(${t0}% + 1px) 0, 100% 0, 100% 100%, calc(${t0 - CORTE}% + 1px) 100%)`
+      : `polygon(calc(${t0}% + 1px) 0, calc(${t1}% - 1px) 0, `
+        + `calc(${t1 - CORTE}% - 1px) 100%, calc(${t0 - CORTE}% + 1px) 100%)`;
+
+    // Onde o rosto precisa cair: o meio da faixa na altura dele. A última faixa
+    // tem a borda direita reta em vez de inclinada, e por isso seu meio fica bem
+    // mais à direita — foi o que partia o rosto do segundo instrutor ao meio.
+    const alvo = ultima
+      ? (t0 - CORTE * ROSTO + 100) / 2
+      : (t0 + t1) / 2 - CORTE * ROSTO;
+
+    // A foto é centrada nesse alvo e alargada o quanto for preciso para ainda
+    // cobrir a faixa inteira, sem deixar canto descoberto.
+    const limEsq = t0 - CORTE;
+    const limDir = ultima ? 100 : t1;
+    const esquerda = Math.min(limEsq, 2 * alvo - limDir);
+    const largura = 2 * (alvo - esquerda);
+    return { recorte, estilo: `left:${esquerda}%;width:${largura}%` };
   });
 
   return `<div class="elenco">
-    ${mostra.map((ins, k) => foto('rosto', ins.slug, ins.instrutor,
-      `style="${estilos[k]}" title="${esc(ins.instrutor)} · ${ins.total} leads · ${ins.vendas} vendas"`)).join('')}
+    ${mostra.map((ins, k) => `<span class="faixa" style="clip-path:${faixas[k].recorte}"
+       title="${esc(ins.instrutor)} · ${ins.total} leads · ${ins.vendas} vendas">
+       ${foto('rosto', ins.slug, ins.instrutor, `style="${faixas[k].estilo}"`)}
+     </span>`).join('')}
     ${resto > 0 ? `<span class="mais">+${resto}</span>` : ''}
   </div>`;
 }
