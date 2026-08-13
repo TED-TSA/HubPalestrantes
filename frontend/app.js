@@ -10,7 +10,14 @@ const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => (
 
 // Os valores em R$ saíram da interface por decisão do produto. O backend ainda
 // calcula valorTotal, então dá para trazer de volta mexendo só aqui.
-const pct = (v) => `${Math.round((v || 0) * 100)}%`;
+// Abaixo de 10% o arredondamento para inteiro distorce demais: presença de 7,6%
+// virava 8%, e a taxa dessas palestras vive nessa faixa.
+function pct(v) {
+  const n = (v || 0) * 100;
+  return n > 0 && n < 10
+    ? `${n.toFixed(1).replace('.', ',')}%`
+    : `${Math.round(n)}%`;
+}
 const plural = (n, um, muitos) => `${n} ${n === 1 ? um : muitos}`;
 
 async function pedir(url, opcoes = {}) {
@@ -366,15 +373,28 @@ async function telaDetalhe(slug) {
       </div>
     </div>
 
-    <div class="painel" style="margin-top:18px">
-      <div class="metricas" style="gap:26px;flex-wrap:wrap">
-        <span class="metrica"><b>${d.cadastrados}</b> cadastrados</span>
-        <span class="metrica"><b>${d.presentes}</b> presentes</span>
-        <span class="metrica"><b>${pct(d.pctPresenca)}</b> de presença</span>
-        <span class="metrica"><b>${d.presentesLead}</b> ${d.presentesLead === 1 ? 'lead na sala' : 'leads na sala'}</span>
-        <span class="metrica"><b>${d.presentesTribo}</b> tribo</span>
-        <span class="metrica"><b>${d.presentesAldeia}</b> aldeia</span>
-        ${d.canceladas ? `<span class="metrica"><b>${d.canceladas}</b> ${d.canceladas === 1 ? 'cancelada' : 'canceladas'}</span>` : ''}
+    <div class="painel numeros">
+      <div class="bloco">
+        <span class="rotulo">Presença</span>
+        <div class="metricas">
+          <span class="metrica"><b>${d.cadastrados}</b> cadastrados</span>
+          <span class="metrica"><b>${d.presentes}</b> check-in geral</span>
+          <span class="metrica conv"><b>${pct(d.pctPresenca)}</b> presentes</span>
+        </div>
+        <div class="metricas menor">
+          <span class="metrica"><b>${d.presentesLead}</b> lead</span>
+          <span class="metrica"><b>${d.presentesTribo}</b> tribo</span>
+          <span class="metrica"><b>${d.presentesAldeia}</b> aldeia</span>
+        </div>
+      </div>
+      <div class="bloco">
+        <span class="rotulo">Vendas</span>
+        <div class="metricas">
+          <span class="metrica"><b>${d.vendasTotais}</b> ${d.vendasTotais === 1 ? 'total' : 'totais'}</span>
+          <span class="metrica"><b>${d.vendasAPagar}</b> a pagar</span>
+          <span class="metrica"><b>${d.canceladas}</b> ${d.canceladas === 1 ? 'cancelada' : 'canceladas'}</span>
+          <span class="metrica conv"><b>${d.vendas}</b> ${d.vendas === 1 ? 'efetiva' : 'efetivas'}</span>
+        </div>
       </div>
     </div>
 

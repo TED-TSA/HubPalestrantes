@@ -407,6 +407,17 @@ a:hover { color: var(--acento-claro); }
 
 /* ---------- Admin ---------- */
 .painel { background: var(--surface); border: 1px solid var(--borda); border-radius: 5px; padding: 24px; margin-bottom: 18px; }
+
+/* Os números da palestra: presença de um lado, vendas do outro. */
+.painel.numeros { display: flex; gap: 40px; flex-wrap: wrap; margin-top: 18px; }
+.painel.numeros .bloco { display: flex; flex-direction: column; gap: 12px; }
+.painel.numeros .bloco + .bloco {
+  padding-left: 40px; border-left: 1px solid var(--borda);
+}
+.painel.numeros .rotulo { font-size: 12.5px; color: var(--fraco); }
+.painel.numeros .metricas { gap: 22px; flex-wrap: wrap; }
+.painel.numeros .metricas.menor .metrica { font-size: 12.5px; }
+.painel.numeros .metricas.menor .metrica b { font-size: 17px; color: var(--suave); }
 .painel h3 { font-family: var(--dp); font-size: 17px; font-weight: 500; margin: 0 0 6px; }
 .painel .explica { color: var(--fraco); font-size: 13px; margin: 0 0 20px; line-height: 1.6; }
 

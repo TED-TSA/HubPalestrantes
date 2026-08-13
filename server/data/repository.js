@@ -74,7 +74,8 @@ function resumoDaPalestra(p) {
   return {
     cidade: p.cidade, data: p.data, slug: p.slug,
     cadastrados: p.cadastrados, presentes: p.presentes, pctPresenca: p.pctPresenca,
-    vendas: p.vendas, canceladas: p.canceladas, conversao: p.conversao,
+    vendas: p.vendas, vendasTotais: p.vendasTotais, vendasAPagar: p.vendasAPagar,
+    canceladas: p.canceladas, conversao: p.conversao,
     presentesTribo: p.presentesTribo, presentesAldeia: p.presentesAldeia, presentesLead: p.presentesLead,
     leads: p.leads.length,
     instrutores: porInstrutor(p),
