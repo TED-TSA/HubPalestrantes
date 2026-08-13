@@ -152,12 +152,15 @@ function elenco(instrutores, limite) {
       // Centro geométrico da faixa, para as iniciais de quem não tem foto.
       const centro = ((b0 + dirAlto) / 2 + ((b0 - CORTE) + dirBaixo) / 2) / 2;
 
-      return `<span class="faixa" style="clip-path:${fora}" data-centro="${centro}">
-        <span class="dentro" style="clip-path:${dentro}">
-          <img class="rosto" src="/public/instrutores/${esc(ins.slug)}.jpg" alt="${esc(ins.instrutor)}"
-               data-iniciais="${esc(iniciais(ins.instrutor))}" style="left:${esquerda}%;width:${largura}%">
-        </span>
-      </span>`;
+      // Quem não tem arquivo já vem com as iniciais: pedir a imagem para tomar
+      // 404 e só então trocar custava dezenas de requisições por tela.
+      const dentroDaFaixa = ins.temFoto === false
+        ? `<span class="ini" style="left:${centro}%">${esc(iniciais(ins.instrutor))}</span>`
+        : `<span class="dentro" style="clip-path:${dentro}">
+             <img class="rosto" src="/public/instrutores/${esc(ins.slug)}.jpg" alt="${esc(ins.instrutor)}"
+                  data-iniciais="${esc(iniciais(ins.instrutor))}" style="left:${esquerda}%;width:${largura}%">
+           </span>`;
+      return `<span class="faixa" style="clip-path:${fora}" data-centro="${centro}">${dentroDaFaixa}</span>`;
     }).join('')}
     <span class="veu"></span>
   </div>`;

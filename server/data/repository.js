@@ -2,6 +2,7 @@ import { resumoEvento } from '../domain/metricas.js';
 import { montarColunas } from '../domain/kanban.js';
 import { ultimaSincronizacao } from './sincronizacao.js';
 import { slug } from '../domain/texto.js';
+import { temFoto } from './fotos.js';
 
 // Tudo aqui lê do espelho local em SQLite, nunca do BigQuery. Quem fala com o
 // BigQuery é a sincronização, em segundo plano — por isso a tela responde em
@@ -58,11 +59,12 @@ function visivel(palestra, usuario) {
 }
 
 function porInstrutor(palestra, leads) {
-  return palestra.palestrantes.map((nome) => ({
-    instrutor: nome,
-    slug: slug(nome),
-    ...resumoEvento(leads.filter((l) => l.donos.includes(nome))),
-  }));
+  return palestra.palestrantes.map((nome) => {
+    const s = slug(nome);
+    // O cliente precisa saber quem tem arquivo para não pedir e tomar 404.
+    return { instrutor: nome, slug: s, temFoto: temFoto(s),
+      ...resumoEvento(leads.filter((l) => l.donos.includes(nome))) };
+  });
 }
 
 function resumoDaPalestra(palestra, leads) {
