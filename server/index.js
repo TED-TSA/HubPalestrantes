@@ -1,20 +1,36 @@
 import { criarApp } from './app.js';
-import { carregarTudo } from './data/repository.js';
+import { bancoPadrao } from './data/db.js';
+import { sincronizar, ultimaSincronizacao } from './data/sincronizacao.js';
 import { runQuery } from './data/bq.js';
 import { config } from '../config.js';
 
-const app = criarApp();
+const db = bancoPadrao();
+const app = criarApp({ db });
+
+// A tela lê do espelho em SQLite; quem fala com o BigQuery é só isto aqui.
+// Assim nenhuma pessoa espera os ~15s da consulta, e o dado sobrevive a
+// reinício do servidor: ao subir, o que está em disco já serve.
+async function atualizar(motivo) {
+  const inicio = Date.now();
+  try {
+    const r = await sincronizar(db, { runQuery });
+    const s = ((Date.now() - inicio) / 1000).toFixed(1);
+    console.log(`[sync ${motivo}] ${r.palestras} palestras, ${r.leads} leads em ${s}s`
+      + (r.semPalestra ? ` · ${r.semPalestra} leads sem palestra correspondente` : ''));
+  } catch (e) {
+    // Falhar aqui não derruba a tela: ela continua servindo o que já está no
+    // banco, e a próxima rodada tenta de novo.
+    console.error(`[sync ${motivo}] falhou: ${e.message}`);
+  }
+}
+
 app.listen(config.port, () => {
   console.log(`Hub do Palestrante em http://localhost:${config.port}`);
+  const anterior = ultimaSincronizacao(db);
+  console.log(anterior
+    ? `Servindo os dados de ${anterior.em}; atualizando em segundo plano.`
+    : 'Banco vazio: buscando os dados pela primeira vez.');
 
-  // Aquece o cache assim que o servidor sobe. Sem isto, a primeira pessoa a
-  // abrir o Hub no dia paga os ~15s das consultas sozinha, olhando o esqueleto.
-  const inicio = Date.now();
-  carregarTudo({ runQuery })
-    .then(({ palestras, descartados }) => {
-      const segundos = ((Date.now() - inicio) / 1000).toFixed(1);
-      console.log(`Dados prontos em ${segundos}s — ${palestras.length} palestras`
-        + (descartados ? `, ${descartados} leads descartados na origem` : ''));
-    })
-    .catch((e) => console.error('Falha ao aquecer o cache:', e.message));
+  atualizar('inicial');
+  setInterval(() => atualizar('periódico'), config.sincronizacaoMs).unref();
 });

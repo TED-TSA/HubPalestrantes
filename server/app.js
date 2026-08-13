@@ -2,13 +2,11 @@ import express from 'express';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { criarRotas } from './routes.js';
-import { runQuery } from './data/bq.js';
 import { bancoPadrao } from './data/db.js';
 import { comUsuario } from './auth/middleware.js';
 
 export function criarApp(deps = {}) {
   const db = deps.db ?? bancoPadrao();
-  const dependencias = { runQuery, ...deps, db };
 
   const app = express();
   const dir = path.dirname(fileURLToPath(import.meta.url));
@@ -16,7 +14,7 @@ export function criarApp(deps = {}) {
 
   app.use(express.json());
   app.use(comUsuario(db));
-  app.use('/api', criarRotas(dependencias));
+  app.use('/api', criarRotas({ db }));
 
   // As duas páginas se repelem: quem está logado não volta para o login, e quem
   // não está não vê o app. O frontend também confere via /api/eu, para cobrir

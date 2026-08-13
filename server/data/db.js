@@ -31,6 +31,46 @@ CREATE TABLE IF NOT EXISTS sessoes (
 );
 
 CREATE INDEX IF NOT EXISTS idx_vinculos_usuario ON vinculos(usuario_id);
+
+-- Espelho do BigQuery. Consultar lá custa ~11s por chamada só para subir o CLI,
+-- então a tela lê daqui e uma sincronização em segundo plano é quem paga essa
+-- conta. De quebra, o dado sobrevive a reinício do servidor.
+CREATE TABLE IF NOT EXISTS palestras (
+  slug TEXT PRIMARY KEY,
+  cidade TEXT NOT NULL,
+  data TEXT NOT NULL,
+  palestrantes TEXT NOT NULL,
+  cadastrados INTEGER NOT NULL DEFAULT 0,
+  presentes INTEGER NOT NULL DEFAULT 0,
+  presentes_tribo INTEGER NOT NULL DEFAULT 0,
+  presentes_aldeia INTEGER NOT NULL DEFAULT 0,
+  presentes_lead INTEGER NOT NULL DEFAULT 0,
+  pct_presenca REAL NOT NULL DEFAULT 0,
+  vendas INTEGER NOT NULL DEFAULT 0,
+  vendas_totais INTEGER NOT NULL DEFAULT 0,
+  vendas_a_pagar INTEGER NOT NULL DEFAULT 0,
+  canceladas INTEGER NOT NULL DEFAULT 0,
+  conversao REAL NOT NULL DEFAULT 0
+);
+
+CREATE TABLE IF NOT EXISTS leads (
+  id INTEGER PRIMARY KEY,
+  palestra_slug TEXT NOT NULL REFERENCES palestras(slug) ON DELETE CASCADE,
+  nome TEXT NOT NULL,
+  telefone TEXT,
+  email TEXT,
+  etapa TEXT NOT NULL,
+  instrutor TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_leads_palestra ON leads(palestra_slug);
+
+CREATE TABLE IF NOT EXISTS sincronizacao (
+  id INTEGER PRIMARY KEY CHECK (id = 1),
+  em TEXT NOT NULL,
+  descartados INTEGER NOT NULL DEFAULT 0,
+  sem_palestra INTEGER NOT NULL DEFAULT 0
+);
 `;
 
 // Migração de bico: adiciona a coluna se o banco foi criado antes dela existir.

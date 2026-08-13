@@ -1,7 +1,6 @@
 import { Router } from 'express';
 import * as repo from './data/repository.js';
 import * as usuarios from './data/usuarios.js';
-import { runQuery } from './data/bq.js';
 import { conferirSenha, senhaAceitavel } from './auth/senha.js';
 import {
   criarSessao, destruirSessao, cookieDeSessao, cookieDeSaida,
@@ -11,8 +10,7 @@ import { exigirLogin, exigirAdmin } from './auth/middleware.js';
 import { bloqueado, registrarFalha, limparFalhas } from './auth/limite.js';
 import { config } from '../config.js';
 
-export function criarRotas(deps = { runQuery }) {
-  const db = deps.db;
+export function criarRotas({ db }) {
   const r = Router();
 
   r.get('/health', (_req, res) => res.json({ ok: true }));
@@ -62,13 +60,13 @@ export function criarRotas(deps = { runQuery }) {
     res.json({ ok: true });
   });
 
-  r.get('/eventos', exigirLogin, async (req, res, next) => {
-    try { res.json(await repo.listarEventos(deps, req.usuario)); } catch (e) { next(e); }
+  r.get('/eventos', exigirLogin, (req, res, next) => {
+    try { res.json(repo.listarEventos(db, req.usuario)); } catch (e) { next(e); }
   });
 
-  r.get('/eventos/:slug', exigirLogin, async (req, res, next) => {
+  r.get('/eventos/:slug', exigirLogin, (req, res, next) => {
     try {
-      const d = await repo.detalheEvento(req.params.slug, deps, req.usuario);
+      const d = repo.detalheEvento(db, req.params.slug, req.usuario);
       // A palestra encontrada traz slug; a não encontrada vem vazia.
       if (!d.slug) return res.status(404).json({ erro: 'Palestra não encontrada' });
       res.json(d);
@@ -116,15 +114,15 @@ export function criarRotas(deps = { runQuery }) {
 
   // Quantos leads a origem está mandando quebrados. Sem isto, metade da base
   // sumiria da tela sem ninguém perceber.
-  r.get('/admin/saude', exigirAdmin, async (_req, res, next) => {
-    try { res.json(await repo.saude(deps)); } catch (e) { next(e); }
+  r.get('/admin/saude', exigirAdmin, (_req, res, next) => {
+    try { res.json(repo.saude(db)); } catch (e) { next(e); }
   });
 
   // Nomes de palestrante que aparecem nos dados, marcando quem ainda não tem
   // dono. É o que impede um instrutor de logar numa tela vazia por causa de grafia.
-  r.get('/admin/nomes', exigirAdmin, async (_req, res, next) => {
+  r.get('/admin/nomes', exigirAdmin, (_req, res, next) => {
     try {
-      const nomes = await repo.nomesDeConexao(deps);
+      const nomes = repo.nomesDeConexao(db);
       res.json(nomes.map((nome) => {
         const dono = usuarios.donoDoNome(db, nome);
         return { nome, dono: dono ? { id: dono.id, nome: dono.nome } : null };

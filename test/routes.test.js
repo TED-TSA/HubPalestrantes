@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { criarApp } from '../server/app.js';
-import { limparCache } from '../server/data/cache.js';
+import { sincronizar } from '../server/data/sincronizacao.js';
 import { leadsExemplo, palestrasExemplo } from '../server/data/exemplo.js';
 import { abrirBanco } from '../server/data/db.js';
 import * as usuarios from '../server/data/usuarios.js';
@@ -10,7 +10,6 @@ import { zerarTudo } from '../server/auth/limite.js';
 const SENHA = 'senha-de-teste';
 
 async function subir() {
-  limparCache();
   zerarTudo();
   const db = abrirBanco(':memory:');
   usuarios.criar(db, { email: 'admin@tradestars.com.br', nome: 'Admin', senha: SENHA, papel: 'admin' });
@@ -18,15 +17,11 @@ async function subir() {
   usuarios.criar(db, { email: 'elizier@tradestars.com.br', nome: 'Elizier', senha: SENHA, vinculos: ['Elizier'] });
   usuarios.criar(db, { email: 'marcos@tradestars.com.br', nome: 'Marcos', senha: SENHA, vinculos: ['Marcos'] });
 
-  const deps = {
-    db,
-    runQuery: async (sql) => {
-      if (sql.includes('presencial_metricas')) return palestrasExemplo;
-      return leadsExemplo;
-    },
-  };
+  await sincronizar(db, {
+    runQuery: async (sql) => (sql.includes('presencial_metricas') ? palestrasExemplo : leadsExemplo),
+  });
   const srv = await new Promise((resolve) => {
-    const s = criarApp(deps).listen(0, () => resolve(s));
+    const s = criarApp({ db }).listen(0, () => resolve(s));
   });
   return { srv, db, base: `http://localhost:${srv.address().port}` };
 }

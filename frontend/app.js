@@ -286,7 +286,21 @@ async function avisoDeSaude() {
       para uma cidade sem palestra cadastrada`);
   }
   if (!partes.length) return '';
-  return `<div class="aviso">${partes.join('. ')}. Vale cobrar a origem dos dados.</div>`;
+  return `<div class="aviso">${partes.join('. ')}. Vale cobrar a origem dos dados.
+    ${s.atualizadoEm ? `<span class="quando">Dados de ${esc(horaCurta(s.atualizadoEm))}.</span>` : ''}</div>`;
+}
+
+// "há 3 min" é mais útil que um carimbo de data: o que se quer saber é se o
+// número na tela é de agora ou de ontem.
+function horaCurta(iso) {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  const min = Math.round((Date.now() - d.getTime()) / 60000);
+  if (min < 1) return 'agora';
+  if (min < 60) return `${min} min atrás`;
+  const h = Math.round(min / 60);
+  if (h < 24) return `${h}h atrás`;
+  return d.toLocaleDateString('pt-BR');
 }
 
 /* ---------------- Evento ---------------- */
