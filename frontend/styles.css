@@ -152,9 +152,14 @@ a:hover { color: var(--acento-claro); }
   display: flex; flex-direction: column; justify-content: space-between;
   padding: 26px 26px 22px; pointer-events: none;
 }
-.ev-nome { display: flex; align-items: baseline; gap: 11px; }
+.ev-nome { display: flex; align-items: baseline; gap: 11px; flex-wrap: wrap; }
 .ev-nome .sigla { font-family: var(--dp); font-size: 46px; line-height: .9; letter-spacing: .01em; text-transform: uppercase; }
 .ev-nome .num { font-family: var(--dp); font-size: 28px; line-height: .9; color: var(--fraco); }
+/* Nome de cidade longo cede corpo para não atropelar a foto nem empurrar a data. */
+.ev-nome.medio .sigla { font-size: 34px; }
+.ev-nome.medio .num { font-size: 22px; }
+.ev-nome.longo .sigla { font-size: 26px; }
+.ev-nome.longo .num { font-size: 18px; }
 .ev-quem { font-size: 13px; color: var(--suave); margin-top: 11px; }
 
 .barra-conv { position: absolute; left: 0; right: 0; bottom: 0; height: 2px; background: var(--borda); }

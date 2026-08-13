@@ -1,72 +1,118 @@
-import { SQL_LEADS, SQL_VENDAS } from './queries.js';
-import { leadsExemplo, vendasExemplo } from './exemplo.js';
+import { SQL_LEADS, SQL_LEADS_DESCARTADOS, SQL_PALESTRAS, SQL_VENDAS } from './queries.js';
+import { leadsExemplo, vendasExemplo, palestrasExemplo } from './exemplo.js';
 import { cached } from './cache.js';
 import { config } from '../../config.js';
 import { indexarVendas } from '../domain/vendas.js';
-import { enriquecerLeads, resumoEvento, resumoInstrutores } from '../domain/metricas.js';
+import { enriquecerLeads, resumoEvento } from '../domain/metricas.js';
 import { montarColunas } from '../domain/kanban.js';
+import { montarPalestra, cidadeDoPipeline, indexarPalestrasPorCidade } from '../domain/palestra.js';
 import { slug } from '../domain/texto.js';
 
-export async function carregarTudo(deps) {
+async function buscar(deps) {
   if (config.usarExemplo) {
-    return enriquecerLeads(leadsExemplo, indexarVendas(vendasExemplo));
+    return {
+      palestras: palestrasExemplo.map(montarPalestra),
+      leads: enriquecerLeads(leadsExemplo, indexarVendas(vendasExemplo)),
+      descartados: 0,
+    };
   }
-  return cached('leads-enriquecidos', config.cacheTtlMs, async () => {
-    const [leadsRaw, vendasRaw] = await Promise.all([
-      deps.runQuery(SQL_LEADS),
-      deps.runQuery(SQL_VENDAS),
-    ]);
-    return enriquecerLeads(leadsRaw, indexarVendas(vendasRaw));
-  });
-}
-
-// O recorte por instrutor acontece aqui, antes de qualquer coisa virar JSON.
-// Se isto vivesse no frontend, os leads dos colegas viajariam no payload.
-function visiveisPara(leads, usuario) {
-  if (!usuario || usuario.papel === 'admin') return leads;
-  const meus = new Set(usuario.vinculos ?? []);
-  return leads.filter((l) => meus.has(l.instrutor));
-}
-
-function agruparPorEvento(leads) {
-  const grupos = new Map();
-  for (const l of leads) {
-    if (!grupos.has(l.evento)) grupos.set(l.evento, []);
-    grupos.get(l.evento).push(l);
-  }
-  return grupos;
-}
-
-export async function listarEventos(deps, usuario) {
-  const leads = visiveisPara(await carregarTudo(deps), usuario);
-  return [...agruparPorEvento(leads).entries()]
-    .map(([evento, ls]) => ({
-      evento, slug: slug(evento),
-      ...resumoEvento(ls),
-      // Mesmo formato do detalhe (nome, slug e métricas): o card da home precisa
-      // do slug para achar a foto, e os números alimentam o tooltip.
-      instrutores: resumoInstrutores(ls),
-    }))
-    .sort((a, b) => b.total - a.total);
-}
-
-export async function detalheEvento(eventoSlug, deps, usuario) {
-  const leads = visiveisPara(await carregarTudo(deps), usuario);
-  const doEvento = leads.filter((l) => slug(l.evento) === eventoSlug);
-  // Para um instrutor sem lead no evento, ele simplesmente não existe: mesmo 404
-  // de um slug inventado, sem revelar que o evento existe para outra pessoa.
-  if (doEvento.length === 0) return { evento: null };
+  const [palestrasRaw, leadsRaw, vendasRaw, contagem] = await Promise.all([
+    deps.runQuery(SQL_PALESTRAS),
+    deps.runQuery(SQL_LEADS),
+    deps.runQuery(SQL_VENDAS),
+    deps.runQuery(SQL_LEADS_DESCARTADOS),
+  ]);
   return {
-    evento: doEvento[0].evento,
-    resumo: resumoEvento(doEvento),
-    instrutores: resumoInstrutores(doEvento),
-    colunas: montarColunas(doEvento),
+    palestras: palestrasRaw.map(montarPalestra),
+    leads: enriquecerLeads(leadsRaw, indexarVendas(vendasRaw)),
+    descartados: Number(contagem?.[0]?.descartados ?? 0),
   };
 }
 
-// Nomes de instrutor que realmente aparecem nos dados — alimenta a escolha
+// Cada palestra recebe os leads da sua cidade. Um lead sem Conexão não tem dono
+// individual: ele pertence a quem subiu ao palco naquela palestra. É a única
+// atribuição possível, já que 298 dos 308 leads vêm sem esse campo.
+export async function carregarTudo(deps) {
+  const monta = async () => {
+    const { palestras, leads, descartados } = await buscar(deps);
+    const porCidade = indexarPalestrasPorCidade(palestras);
+    const leadsDaPalestra = new Map(palestras.map((p) => [p.slug, []]));
+
+    let semPalestra = 0;
+    for (const l of leads) {
+      const p = porCidade.get(slug(cidadeDoPipeline(l.evento)));
+      if (!p) { semPalestra += 1; continue; }
+      l.donos = l.instrutorConhecido ? [l.instrutor] : p.palestrantes;
+      leadsDaPalestra.get(p.slug).push(l);
+    }
+    for (const p of palestras) p.leads = leadsDaPalestra.get(p.slug) ?? [];
+    return { palestras, descartados, semPalestra };
+  };
+
+  if (config.usarExemplo) return monta();
+  return cached('palestras', config.cacheTtlMs, monta);
+}
+
+// O recorte por instrutor acontece aqui, antes de qualquer coisa virar JSON.
+// Se isto vivesse no frontend, os dados dos colegas viajariam no payload.
+function visiveis(palestras, usuario) {
+  if (!usuario || usuario.papel === 'admin') return palestras;
+  const meus = new Set(usuario.vinculos ?? []);
+  return palestras
+    .filter((p) => p.palestrantes.some((n) => meus.has(n)))
+    .map((p) => ({ ...p, leads: p.leads.filter((l) => l.donos.some((n) => meus.has(n))) }));
+}
+
+function porInstrutor(palestra) {
+  return palestra.palestrantes.map((nome) => {
+    const ls = palestra.leads.filter((l) => l.donos.includes(nome));
+    return { instrutor: nome, slug: slug(nome), ...resumoEvento(ls) };
+  });
+}
+
+function resumoDaPalestra(p) {
+  return {
+    cidade: p.cidade, data: p.data, slug: p.slug,
+    cadastrados: p.cadastrados, presentes: p.presentes, pctPresenca: p.pctPresenca,
+    vendas: p.vendas, canceladas: p.canceladas, conversao: p.conversao,
+    presentesTribo: p.presentesTribo, presentesAldeia: p.presentesAldeia, presentesLead: p.presentesLead,
+    leads: p.leads.length,
+    instrutores: porInstrutor(p),
+  };
+}
+
+export async function listarEventos(deps, usuario) {
+  const { palestras } = await carregarTudo(deps);
+  return visiveis(palestras, usuario)
+    .map(resumoDaPalestra)
+    .sort((a, b) => b.data.localeCompare(a.data));
+}
+
+export async function detalheEvento(eventoSlug, deps, usuario) {
+  const { palestras } = await carregarTudo(deps);
+  const p = visiveis(palestras, usuario).find((x) => x.slug === eventoSlug);
+  // Para um instrutor que não subiu naquele palco, a palestra simplesmente não
+  // existe: mesmo 404 de um slug inventado.
+  if (!p) return { evento: null };
+  return {
+    ...resumoDaPalestra(p),
+    resumo: resumoEvento(p.leads),
+    colunas: montarColunas(p.leads),
+  };
+}
+
+// Números que a gestão precisa ver para cobrar a origem dos dados.
+export async function saude(deps) {
+  const { descartados, semPalestra } = await carregarTudo(deps);
+  return { descartados, semPalestra };
+}
+
+// Nomes de palestrante que realmente aparecem nos dados — alimenta a escolha
 // guiada do cadastro, para que ninguém digite a grafia errada.
 export async function nomesDeConexao(deps) {
-  const leads = await carregarTudo(deps);
-  return [...new Set(leads.map((l) => l.instrutor).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'pt-BR'));
+  const { palestras } = await carregarTudo(deps);
+  const nomes = new Set();
+  for (const p of palestras) for (const n of p.palestrantes) nomes.add(n);
+  for (const p of palestras) for (const l of p.leads) if (l.instrutorConhecido) nomes.add(l.instrutor);
+  return [...nomes].sort((a, b) => a.localeCompare(b, 'pt-BR'));
 }

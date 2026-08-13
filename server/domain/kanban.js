@@ -1,3 +1,7 @@
+import { ordenarEtapas } from './palestra.js';
+
+// O EtapaId real é um hash (`hnvDvFHpoZk3l3UNhXz9`), e cada funil tem os seus:
+// não dá para ordenar o quadro por ele. A ordem vem da configuração, por nome.
 export function montarColunas(leads) {
   const mapa = new Map();
   for (const l of leads) {
@@ -5,13 +9,6 @@ export function montarColunas(leads) {
     if (!mapa.has(key)) mapa.set(key, { etapaId: l.etapaId, etapaName: key, leads: [] });
     mapa.get(key).leads.push(l);
   }
-  return [...mapa.values()].sort((a, b) => {
-    const na = Number(a.etapaId), nb = Number(b.etapaId);
-    const aNum = a.etapaId !== '' && !Number.isNaN(na);
-    const bNum = b.etapaId !== '' && !Number.isNaN(nb);
-    if (aNum && bNum) return na - nb;
-    if (aNum) return -1;
-    if (bNum) return 1;
-    return a.etapaName.localeCompare(b.etapaName);
-  });
+  const ordem = ordenarEtapas([...mapa.keys()]);
+  return ordem.map((nome) => mapa.get(nome));
 }

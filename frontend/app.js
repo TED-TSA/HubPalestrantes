@@ -30,15 +30,27 @@ const ehAdmin = () => eu?.papel === 'admin';
 
 /* ---------------- Peças de texto ---------------- */
 
-// Nome de evento é sigla + número ("CXJ 3006"): a sigla identifica, o número é
-// só sequência. O desenho separa os dois pesos.
-function tituloEvento(nome) {
-  const m = String(nome ?? '').trim().match(/^(\S+)\s+(.+)$/);
-  const sigla = m ? m[1] : String(nome ?? '');
-  const num = m ? m[2] : '';
-  return `<div class="ev-nome">
-    <span class="sigla">${esc(sigla)}</span>
-    ${num ? `<span class="num">${esc(num)}</span>` : ''}
+const MESES = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
+
+// "2026-08-10" → "10 ago". Montado na mão porque `new Date` interpretaria a
+// data como UTC e mostraria o dia anterior no fuso do Brasil.
+function dataCurta(iso) {
+  const m = String(iso ?? '').match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  return m ? `${Number(m[3])} ${MESES[Number(m[2]) - 1]}` : '';
+}
+
+// A palestra é identificada pela cidade; a data é o que separa duas visitas à
+// mesma cidade. Os dois pesos do desenho caem certinho nisso.
+//
+// O desenho foi feito com "CXJ" e "SP" em mente. Cidade de verdade é longa
+// ("Balneário Camboriú", "São José dos Campos") e a 46px atropela a foto, então
+// o corpo cede conforme o nome cresce.
+function tituloEvento(ev) {
+  const n = String(ev.cidade ?? '').length;
+  const porte = n <= 9 ? '' : n <= 15 ? ' medio' : ' longo';
+  return `<div class="ev-nome${porte}">
+    <span class="sigla">${esc(ev.cidade)}</span>
+    <span class="num">${esc(dataCurta(ev.data))}</span>
   </div>`;
 }
 
@@ -55,11 +67,23 @@ function quemNoPalco(instrutores) {
   return `${frase} no palco`;
 }
 
-function metricas(resumo, { conversao = true } = {}) {
+// Da palestra: quem apareceu na sala e quanto disso virou venda. O número de
+// leads fica junto porque é o trabalho que sobra para o instrutor.
+function metricasPalestra(p) {
   return `<div class="metricas">
-    <span class="metrica"><b>${resumo.total}</b> ${resumo.total === 1 ? 'lead' : 'leads'}</span>
-    <span class="metrica"><b>${resumo.vendas}</b> ${resumo.vendas === 1 ? 'venda' : 'vendas'}</span>
-    ${conversao ? `<span class="metrica conv"><b>${pct(resumo.taxaConversao)}</b> conversão</span>` : ''}
+    <span class="metrica"><b>${p.presentes}</b> presentes</span>
+    <span class="metrica"><b>${p.vendas}</b> ${p.vendas === 1 ? 'venda' : 'vendas'}</span>
+    <span class="metrica conv"><b>${pct(p.conversao)}</b> conversão</span>
+    <span class="metrica"><b>${p.leads}</b> ${p.leads === 1 ? 'lead' : 'leads'}</span>
+  </div>`;
+}
+
+// Do recorte de um instrutor: só o que ele tem para trabalhar.
+function metricasLeads(r, { conversao = true } = {}) {
+  return `<div class="metricas">
+    <span class="metrica"><b>${r.total}</b> ${r.total === 1 ? 'lead' : 'leads'}</span>
+    <span class="metrica"><b>${r.vendas}</b> ${r.vendas === 1 ? 'venda' : 'vendas'}</span>
+    ${conversao ? `<span class="metrica conv"><b>${pct(r.taxaConversao)}</b> conversão</span>` : ''}
   </div>`;
 }
 
@@ -212,26 +236,44 @@ async function telaHome() {
   }
 
   const nota = ehAdmin()
-    ? `${plural(eventos.length, 'palestra', 'palestras')} com leads registrados`
-    : `${plural(eventos.length, 'palestra', 'palestras')} com leads seus`;
+    ? `${plural(eventos.length, 'palestra', 'palestras')} registradas`
+    : `${plural(eventos.length, 'palestra', 'palestras')} suas`;
 
-  app.innerHTML = tituloLinha(titulo, nota) + `
+  app.innerHTML = (ehAdmin() ? await avisoDeSaude() : '') + tituloLinha(titulo, nota) + `
     <div class="grade">
       ${eventos.map((e) => `
         <a class="card-evento" href="#/evento/${encodeURIComponent(e.slug)}">
           ${elenco(e.instrutores, 3)}
           <div class="miolo">
             <div>
-              ${tituloEvento(e.evento)}
+              ${tituloEvento(e)}
               <div class="ev-quem">${esc(quemNoPalco(e.instrutores))}</div>
             </div>
-            ${metricas(e)}
+            ${metricasPalestra(e)}
           </div>
-          <div class="barra-conv"><i style="width:${pct(e.taxaConversao)}"></i></div>
+          <div class="barra-conv"><i style="width:${pct(e.conversao)}"></i></div>
         </a>`).join('')}
     </div>`;
 
   tratarFotosQuebradas(app);
+}
+
+// A origem grava ausência como a palavra "null": esses leads são descartados na
+// consulta. Mostrar o número é o que impede o problema de passar despercebido.
+async function avisoDeSaude() {
+  let s;
+  try { s = await pedir('/api/admin/saude'); } catch { return ''; }
+  const partes = [];
+  if (s.descartados) {
+    partes.push(`<strong>${s.descartados}</strong> ${s.descartados === 1 ? 'lead veio' : 'leads vieram'}
+      sem evento ou etapa identificada e ${s.descartados === 1 ? 'ficou' : 'ficaram'} de fora`);
+  }
+  if (s.semPalestra) {
+    partes.push(`<strong>${s.semPalestra}</strong> ${s.semPalestra === 1 ? 'lead aponta' : 'leads apontam'}
+      para uma cidade sem palestra cadastrada`);
+  }
+  if (!partes.length) return '';
+  return `<div class="aviso">${partes.join('. ')}. Vale cobrar a origem dos dados.</div>`;
 }
 
 /* ---------------- Evento ---------------- */
@@ -301,8 +343,9 @@ async function telaDetalhe(slug) {
   let d;
   try { d = await pedir(`/api/eventos/${encodeURIComponent(slug)}`); }
   catch {
-    app.innerHTML = `<div class="vazio"><h3>Evento não encontrado</h3>
-      <p>Ele pode ter saído do funil, ou não há lead seu nele. <a href="#/">Voltar aos eventos</a></p></div>`;
+    app.innerHTML = `<div class="vazio"><h3>Palestra não encontrada</h3>
+      <p>Ela pode ter saído da base, ou você não subiu naquele palco.
+         <a href="#/">Voltar às palestras</a></p></div>`;
     return;
   }
   estado = { detalhe: d, filtroInstrutor: null, etapaAberta: 0 };
@@ -311,15 +354,27 @@ async function telaDetalhe(slug) {
   const podeFiltrar = admin && d.instrutores.length > 1;
 
   app.innerHTML = `
-    <a class="voltar" href="#/">← Eventos</a>
+    <a class="voltar" href="#/">← Palestras</a>
     <div class="faixa-evento">
       ${elenco(d.instrutores, 1)}
       <div class="miolo">
         <div>
-          ${tituloEvento(d.evento)}
-          <div class="ev-quem">${admin ? esc(quemNoPalco(d.instrutores)) : 'Seu recorte deste evento'}</div>
+          ${tituloEvento(d)}
+          <div class="ev-quem">${esc(quemNoPalco(d.instrutores))}</div>
         </div>
-        ${metricas(d.resumo)}
+        ${metricasPalestra(d)}
+      </div>
+    </div>
+
+    <div class="painel" style="margin-top:18px">
+      <div class="metricas" style="gap:26px;flex-wrap:wrap">
+        <span class="metrica"><b>${d.cadastrados}</b> cadastrados</span>
+        <span class="metrica"><b>${d.presentes}</b> presentes</span>
+        <span class="metrica"><b>${pct(d.pctPresenca)}</b> de presença</span>
+        <span class="metrica"><b>${d.presentesLead}</b> ${d.presentesLead === 1 ? 'lead na sala' : 'leads na sala'}</span>
+        <span class="metrica"><b>${d.presentesTribo}</b> tribo</span>
+        <span class="metrica"><b>${d.presentesAldeia}</b> aldeia</span>
+        ${d.canceladas ? `<span class="metrica"><b>${d.canceladas}</b> ${d.canceladas === 1 ? 'cancelada' : 'canceladas'}</span>` : ''}
       </div>
     </div>
 
@@ -332,7 +387,7 @@ async function telaDetalhe(slug) {
               ${elenco([ins], 1)}
               <div class="miolo">
                 <span class="nome">${esc(ins.instrutor)}</span>
-                ${metricas(ins, { conversao: false })}
+                ${metricasLeads(ins, { conversao: false })}
               </div>
             </div>`).join('')}
         </div>

@@ -6,7 +6,11 @@ export function enriquecerLeads(leadsRaw, vendasIndex) {
   return (leadsRaw ?? []).map((l) => {
     const { modalidade, instrutor } = parseConexao(l.Conexao);
     const venda = cruzarLead(l, vendasIndex);
+    // 298 dos 308 leads vêm sem Conexão. Quem tem, ganha dono individual; quem
+    // não tem, será atribuído a quem subiu ao palco daquela palestra.
+    const instrutorConhecido = !!String(l.Conexao ?? '').trim();
     return {
+      instrutorConhecido,
       nome: l.Nome ?? '',
       telefone: l.Telefone ?? '',
       email: l.Email ?? '',
@@ -25,17 +29,15 @@ export function enriquecerLeads(leadsRaw, vendasIndex) {
   });
 }
 
+// "Atendidos" saiu daqui: dependia de EtapaId ser uma sequência numérica, e no
+// dado real ele é um hash por funil. A presença de verdade vem da base de
+// métricas da palestra, que conta quem apareceu na sala.
 export function resumoEvento(leads) {
   const total = leads.length;
   const vendas = leads.filter((l) => l.vendeu).length;
   const valorTotal = leads.reduce((s, l) => s + (l.valorPago || 0), 0);
-  const ids = leads.map((l) => Number(l.etapaId)).filter((n) => !Number.isNaN(n));
-  const primeira = ids.length ? Math.min(...ids) : null;
-  const atendidos = primeira == null ? 0
-    : leads.filter((l) => Number(l.etapaId) !== primeira).length;
   return {
-    total, vendas, valorTotal, atendidos,
-    pctAtendido: total ? atendidos / total : 0,
+    total, vendas, valorTotal,
     taxaConversao: total ? vendas / total : 0,
   };
 }

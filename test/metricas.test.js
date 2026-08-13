@@ -19,13 +19,13 @@ test('enriquece leads com instrutor e venda', () => {
   assert.equal(leads[1].vendeu, false);
 });
 
-test('resumoEvento conta total, vendas e atendidos', () => {
+test('resumoEvento conta total, vendas e valor', () => {
   const leads = enriquecerLeads(raw, indexarVendas(vendas));
   const r = resumoEvento(leads);
   assert.equal(r.total, 3);
   assert.equal(r.vendas, 1);
   assert.equal(r.valorTotal, 697);
-  assert.equal(r.atendidos, 2); // etapaId 2 e 2 (não são a menor = 1)
+  assert.equal(r.atendidos, undefined, 'atendidos dependia de EtapaId numérico');
 });
 
 test('resumoInstrutores agrupa e ordena por valor', () => {

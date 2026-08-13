@@ -69,7 +69,8 @@ export function criarRotas(deps = { runQuery }) {
   r.get('/eventos/:slug', exigirLogin, async (req, res, next) => {
     try {
       const d = await repo.detalheEvento(req.params.slug, deps, req.usuario);
-      if (!d.evento) return res.status(404).json({ erro: 'Evento não encontrado' });
+      // A palestra encontrada traz slug; a não encontrada vem vazia.
+      if (!d.slug) return res.status(404).json({ erro: 'Palestra não encontrada' });
       res.json(d);
     } catch (e) { next(e); }
   });
@@ -113,8 +114,14 @@ export function criarRotas(deps = { runQuery }) {
     } catch (e) { next(e); }
   });
 
-  // Nomes que aparecem no Conexao, marcando quem ainda não tem dono. É o que
-  // impede um instrutor de logar numa tela vazia por causa de grafia.
+  // Quantos leads a origem está mandando quebrados. Sem isto, metade da base
+  // sumiria da tela sem ninguém perceber.
+  r.get('/admin/saude', exigirAdmin, async (_req, res, next) => {
+    try { res.json(await repo.saude(deps)); } catch (e) { next(e); }
+  });
+
+  // Nomes de palestrante que aparecem nos dados, marcando quem ainda não tem
+  // dono. É o que impede um instrutor de logar numa tela vazia por causa de grafia.
   r.get('/admin/nomes', exigirAdmin, async (_req, res, next) => {
     try {
       const nomes = await repo.nomesDeConexao(deps);
