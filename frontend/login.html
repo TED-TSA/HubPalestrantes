@@ -31,19 +31,14 @@
       <div class="vitrine-conteudo">
         <div class="vitrine-marca">
           <span class="selo-ts">TS</span>
-          <span class="sub">TradeStars</span>
+          <span class="marca">TradeStars</span>
         </div>
 
+        <div class="regua"></div>
         <h1>Hub do<br>palestrante</h1>
 
-        <ul class="pontos">
-          <li data-n="01">Seus eventos e seus leads</li>
-          <li data-n="02">O kanban de cada palestra</li>
-          <li data-n="03">Quem comprou e o que comprou</li>
-        </ul>
-
         <div class="rodape">
-          <span>© 2026 TradeStars</span>
+          <span>© 2026 Tradestars</span>
           <span>Nossos palestrantes</span>
         </div>
       </div>
@@ -92,12 +87,21 @@
           <p class="erro" id="erro" role="alert"></p>
 
           <button class="botao-acesso" type="submit" id="enviar">
-            <span id="rotulo">Acessar o Hub</span>
+            <span id="rotulo">Acessar o hub</span>
             <span class="seta" aria-hidden="true">→</span>
           </button>
         </form>
 
-        <p class="restrito">Acesso restrito a colaboradores TradeStars</p>
+        <div class="rodape-acesso">
+          <p class="restrito">Acesso restrito a colaboradores</p>
+          <button class="troca-tema" type="button" id="tema">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="12" cy="12" r="4.2"/>
+              <path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.2 5.2l1.6 1.6M17.2 17.2l1.6 1.6M18.8 5.2l-1.6 1.6M6.8 17.2l-1.6 1.6"/>
+            </svg>
+            <span id="rotulo-tema"></span>
+          </button>
+        </div>
       </div>
     </main>
 

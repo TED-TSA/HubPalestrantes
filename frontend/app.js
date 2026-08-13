@@ -2,7 +2,7 @@ const app = document.getElementById('app');
 const menu = document.getElementById('menu');
 
 let eu = null;
-let estado = { detalhe: null, filtroInstrutor: null };
+let estado = { detalhe: null, filtroInstrutor: null, etapaAberta: 0 };
 
 const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => (
   { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
@@ -11,7 +11,7 @@ const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => (
 // Os valores em R$ saíram da interface por decisão do produto. O backend ainda
 // calcula valorTotal, então dá para trazer de volta mexendo só aqui.
 const pct = (v) => `${Math.round((v || 0) * 100)}%`;
-const dd = (n) => String(n).padStart(2, '0');
+const plural = (n, um, muitos) => `${n} ${n === 1 ? um : muitos}`;
 
 async function pedir(url, opcoes = {}) {
   const res = await fetch(url, {
@@ -28,31 +28,227 @@ async function pedir(url, opcoes = {}) {
 
 const ehAdmin = () => eu?.papel === 'admin';
 
+/* ---------------- Peças de texto ---------------- */
+
 // Nome de evento é sigla + número ("CXJ 3006"): a sigla identifica, o número é
 // só sequência. O desenho separa os dois pesos.
-function nomeEvento(nome) {
+function tituloEvento(nome) {
   const m = String(nome ?? '').trim().match(/^(\S+)\s+(.+)$/);
-  return m ? { sigla: m[1], num: m[2] } : { sigla: String(nome ?? ''), num: '' };
-}
-
-function tituloEvento(nome, classe = 'ev-nome') {
-  const { sigla, num } = nomeEvento(nome);
-  return `<div class="${classe}">
+  const sigla = m ? m[1] : String(nome ?? '');
+  const num = m ? m[2] : '';
+  return `<div class="ev-nome">
     <span class="sigla">${esc(sigla)}</span>
     ${num ? `<span class="num">${esc(num)}</span>` : ''}
   </div>`;
 }
 
-function metrica(n, l) {
-  return `<div class="metrica"><div class="n">${n}</div><div class="l">${l}</div></div>`;
+// "Elidiano e Marina no palco". Acima de três vira "e mais N" — a linha é uma
+// frase, não uma lista, e precisa continuar cabendo numa linha.
+function quemNoPalco(instrutores) {
+  const nomes = (instrutores ?? []).map((i) => i.instrutor);
+  if (!nomes.length) return '';
+  if (!ehAdmin() && nomes.length === 1) return 'Você no palco';
+  let frase;
+  if (nomes.length === 1) frase = nomes[0];
+  else if (nomes.length <= 3) frase = `${nomes.slice(0, -1).join(', ')} e ${nomes.at(-1)}`;
+  else frase = `${nomes.slice(0, 2).join(', ')} e mais ${nomes.length - 2}`;
+  return `${frase} no palco`;
 }
 
-function tituloLinha(texto, conta, extra = '') {
+function metricas(resumo, { conversao = true } = {}) {
+  return `<div class="metricas">
+    <span class="metrica"><b>${resumo.total}</b> ${resumo.total === 1 ? 'lead' : 'leads'}</span>
+    <span class="metrica"><b>${resumo.vendas}</b> ${resumo.vendas === 1 ? 'venda' : 'vendas'}</span>
+    ${conversao ? `<span class="metrica conv"><b>${pct(resumo.taxaConversao)}</b> conversão</span>` : ''}
+  </div>`;
+}
+
+function tituloLinha(texto, nota, extra = '') {
   return `<div class="titulo-linha">
     <h2 class="titulo-secao">${esc(texto)}</h2>
-    ${conta !== undefined ? `<span class="titulo-conta">${esc(conta)}</span>` : ''}
-    <span class="titulo-fio"></span>
-    ${extra}
+    ${nota ? `<span class="titulo-nota">${esc(nota)}</span>` : ''}
+    ${extra ? `<span class="espaco"></span>${extra}` : ''}
+  </div>`;
+}
+
+const legendaVenda = '<span class="legenda"><span class="ponto"></span><span>comprou</span></span>';
+
+function iniciais(nome) {
+  return String(nome ?? '').split(/\s+/).slice(0, 2).map((p) => p[0]?.toUpperCase() ?? '').join('');
+}
+
+/* ---------------- Fotos cortadas na diagonal ---------------- */
+
+// Quanto a aresta anda da direita para a esquerda, em % da área de foto.
+const CORTE = 30;
+// Altura em que o rosto costuma cair na foto, contada do topo.
+const ROSTO = 0.28;
+
+// Uma faixa por instrutor. O âmbar é a forma de trás; a foto vem por cima
+// deslocada 2px, e a fresta que sobra vira o fio do corte.
+function elenco(instrutores, limite) {
+  const mostra = (instrutores ?? []).slice(0, limite);
+  const n = mostra.length;
+  if (!n) return '';
+
+  return `<div class="elenco">
+    ${mostra.map((ins, k) => {
+      const b0 = CORTE + (k * (100 - CORTE)) / n;
+      const b1 = CORTE + ((k + 1) * (100 - CORTE)) / n;
+      const ultima = k === n - 1;
+      const dirAlto = ultima ? 100 : b1;
+      const dirBaixo = ultima ? 100 : b1 - CORTE;
+
+      const fora = `polygon(${b0}% 0, ${dirAlto}% 0, ${dirBaixo}% 100%, ${b0 - CORTE}% 100%)`;
+      const dentro = `polygon(calc(${b0}% + 2px) 0, ${ultima ? '100%' : `calc(${b1}% + 2px)`} 0, `
+        + `${ultima ? '100%' : `calc(${dirBaixo}% + 2px)`} 100%, calc(${b0 - CORTE}% + 2px) 100%)`;
+
+      // Onde o rosto precisa cair: o meio da faixa na altura dele. A última tem
+      // a borda direita reta, e por isso seu meio fica mais à direita.
+      const alvo = ultima
+        ? (b0 - CORTE * ROSTO + 100) / 2
+        : (b0 + b1) / 2 - CORTE * ROSTO;
+      const limEsq = b0 - CORTE;
+      const limDir = ultima ? 100 : b1;
+      const esquerda = Math.min(limEsq, 2 * alvo - limDir);
+      const largura = 2 * (alvo - esquerda);
+      // Centro geométrico da faixa, para as iniciais de quem não tem foto.
+      const centro = ((b0 + dirAlto) / 2 + ((b0 - CORTE) + dirBaixo) / 2) / 2;
+
+      return `<span class="faixa" style="clip-path:${fora}" data-centro="${centro}">
+        <span class="dentro" style="clip-path:${dentro}">
+          <img class="rosto" src="/public/instrutores/${esc(ins.slug)}.jpg" alt="${esc(ins.instrutor)}"
+               data-iniciais="${esc(iniciais(ins.instrutor))}" style="left:${esquerda}%;width:${largura}%">
+        </span>
+      </span>`;
+    }).join('')}
+    <span class="veu"></span>
+  </div>`;
+}
+
+// Sem arquivo de foto, a faixa mostra as iniciais no centro dela.
+function tratarFotosQuebradas(raiz = document) {
+  raiz.querySelectorAll('img[data-iniciais]').forEach((img) => {
+    img.addEventListener('error', () => {
+      const faixa = img.closest('.faixa');
+      if (!faixa) { // avatar do topo
+        const span = document.createElement('span');
+        span.className = img.className;
+        span.textContent = img.dataset.iniciais;
+        img.replaceWith(span);
+        return;
+      }
+      const ini = document.createElement('span');
+      ini.className = 'ini';
+      ini.style.left = `${faixa.dataset.centro}%`;
+      ini.textContent = img.dataset.iniciais;
+      img.remove();
+      faixa.appendChild(ini);
+    }, { once: true });
+  });
+}
+
+/* ---------------- Topo ---------------- */
+
+const rotuloTema = () => (document.documentElement.dataset.tema === 'claro' ? 'Tema escuro' : 'Tema claro');
+
+function alternarTema() {
+  const novo = document.documentElement.dataset.tema === 'claro' ? 'escuro' : 'claro';
+  document.documentElement.dataset.tema = novo;
+  localStorage.setItem('hub-tema', novo);
+  const botao = document.getElementById('tema');
+  if (botao) botao.textContent = rotuloTema();
+}
+
+function renderMenu() {
+  const admin = ehAdmin();
+  menu.innerHTML = `
+    <div class="eu-quem">
+      ${admin
+        ? `<span class="eu-selo">${esc(iniciais(eu.nome))}</span>`
+        : `<img class="eu-selo" src="/public/instrutores/${esc(eu.fotoSlug)}.jpg"
+             alt="" data-iniciais="${esc(iniciais(eu.nome))}">`}
+      <span class="eu-nome">${esc(eu.nome)}</span>
+      <span class="eu-papel">${admin ? 'gestão' : 'instrutor'}</span>
+    </div>
+    <span class="fio-vertical"></span>
+    ${admin ? '<a class="link-topo" href="#/instrutores">Instrutores</a>' : ''}
+    <button class="link-topo" type="button" id="tema">${rotuloTema()}</button>
+    <button class="link-topo" type="button" id="sair">Sair</button>`;
+  tratarFotosQuebradas(menu);
+  document.getElementById('tema').addEventListener('click', alternarTema);
+  document.getElementById('sair').addEventListener('click', async () => {
+    await fetch('/api/logout', { method: 'POST' });
+    location.href = '/login';
+  });
+}
+
+/* ---------------- Home ---------------- */
+
+const esqueleto = () => '<div class="esqueleto"><div></div><div></div></div>';
+
+async function telaHome() {
+  const titulo = ehAdmin() ? 'Todos os eventos' : 'Seus eventos';
+  app.innerHTML = tituloLinha(titulo) + esqueleto();
+
+  let eventos;
+  try { eventos = await pedir('/api/eventos'); }
+  catch {
+    app.innerHTML = tituloLinha(titulo) + `<div class="vazio">
+      <h3>Não foi possível carregar os eventos</h3>
+      <p>A consulta aos dados falhou. Recarregue a página; se continuar, fale com o time de BI.</p></div>`;
+    return;
+  }
+
+  if (!eventos.length) {
+    app.innerHTML = tituloLinha(titulo, 'nenhum ainda') + (ehAdmin()
+      ? `<div class="vazio"><h3>Nenhuma palestra com lead registrado</h3>
+           <p>Os contatos entram no sistema depois do evento. Assim que os primeiros chegarem,
+              as palestras aparecem aqui.</p></div>`
+      : `<div class="vazio"><h3>Nenhuma palestra com lead seu chegou até aqui</h3>
+           <p>Os contatos entram no sistema depois do evento. Se você palestrou nos últimos dias
+              e nada apareceu, fale com o time de BI.</p></div>`);
+    return;
+  }
+
+  const nota = ehAdmin()
+    ? `${plural(eventos.length, 'palestra', 'palestras')} com leads registrados`
+    : `${plural(eventos.length, 'palestra', 'palestras')} com leads seus`;
+
+  app.innerHTML = tituloLinha(titulo, nota) + `
+    <div class="grade">
+      ${eventos.map((e) => `
+        <a class="card-evento" href="#/evento/${encodeURIComponent(e.slug)}">
+          ${elenco(e.instrutores, 3)}
+          <div class="miolo">
+            <div>
+              ${tituloEvento(e.evento)}
+              <div class="ev-quem">${esc(quemNoPalco(e.instrutores))}</div>
+            </div>
+            ${metricas(e)}
+          </div>
+          <div class="barra-conv"><i style="width:${pct(e.taxaConversao)}"></i></div>
+        </a>`).join('')}
+    </div>`;
+
+  tratarFotosQuebradas(app);
+}
+
+/* ---------------- Evento ---------------- */
+
+function cardLead(l) {
+  const detalhe = [l.curso, l.dataVenda, l.vendedor].filter(Boolean).join(' · ');
+  return `<div class="card-lead">
+    <div class="topo-lead">
+      <span class="ln">${esc(l.nome)}</span>
+      ${ehAdmin() ? `<span class="de">${esc(l.instrutor)}</span>` : ''}
+    </div>
+    <div class="tel">${l.telefone ? esc(mascararTelefone(l.telefone)) : 'sem telefone'}</div>
+    ${l.email ? `<div class="email">${esc(mascararEmail(l.email))}</div>` : ''}
+    ${l.vendeu ? `<div class="venda" title="${esc(detalhe)}">
+      <span class="ponto"></span>
+      <span class="curso">${esc(l.curso ?? 'Venda registrada')}</span>
+    </div>` : ''}
   </div>`;
 }
 
@@ -71,207 +267,30 @@ function mascararTelefone(tel) {
   return s.slice(0, -4) + '••••';
 }
 
-function iniciais(nome) {
-  return String(nome ?? '').split(/\s+/).slice(0, 2).map((p) => p[0]?.toUpperCase() ?? '').join('');
-}
-
-// Troca a <img> por um bloco de iniciais quando o arquivo não existe, mantendo
-// a mesma classe para herdar o estilo. Feito com listener em vez de onerror
-// inline para não injetar nome de gente em atributo.
-function tratarFotosQuebradas(raiz = document) {
-  raiz.querySelectorAll('img[data-iniciais]').forEach((img) => {
-    img.addEventListener('error', () => {
-      const span = document.createElement('span');
-      span.className = img.className;
-      // Leva o style junto: é nele que vai o clip-path da faixa diagonal.
-      span.style.cssText = img.style.cssText;
-      span.textContent = img.dataset.iniciais;
-      img.replaceWith(span);
-    }, { once: true });
-  });
-}
-
-function foto(classe, slug, nome, extra = '') {
-  return `<img class="${classe}" src="/public/instrutores/${esc(slug)}.jpg"
-    alt="${esc(nome)}" data-iniciais="${esc(iniciais(nome))}" ${extra}>`;
-}
-
-// Quanto a aresta diagonal anda da direita para a esquerda, em % da área de
-// foto. Quanto maior, mais inclinado o corte — e menos foto sobra. O recorte do
-// invólucro sai daqui também, para o ângulo não viver escrito em dois lugares.
-const CORTE = 30;
-
-// Quem subiu ao palco naquele evento, cortado no próprio card em vez de num
-// bloco à parte. Com mais de uma pessoa, a área diagonal é dividida em faixas
-// paralelas. O teto é três: a quarta faixa cai para uns 30px de largura, e uma
-// fatia dessas não deixa reconhecer ninguém — melhor resumir em "+N".
-function elenco(instrutores) {
-  if (!instrutores?.length) return '';
-  const mostra = instrutores.slice(0, 3);
-  const resto = instrutores.length - mostra.length;
-  const n = mostra.length;
-
-  // Altura em que o rosto costuma cair na foto, contada do topo.
-  const ROSTO = 0.28;
-
-  const faixas = mostra.map((ins, k) => {
-    const t0 = CORTE + (k * (100 - CORTE)) / n;
-    const t1 = CORTE + ((k + 1) * (100 - CORTE)) / n;
-    const ultima = k === n - 1;
-
-    // O recorte fica no invólucro, em coordenadas do card; a foto por dentro se
-    // move livre. O 1px de folga nas arestas inclinadas é a fresta que deixa o
-    // âmbar do fundo aparecer e vira o fio do corte.
-    const recorte = ultima
-      ? `polygon(calc(${t0}% + 1px) 0, 100% 0, 100% 100%, calc(${t0 - CORTE}% + 1px) 100%)`
-      : `polygon(calc(${t0}% + 1px) 0, calc(${t1}% - 1px) 0, `
-        + `calc(${t1 - CORTE}% - 1px) 100%, calc(${t0 - CORTE}% + 1px) 100%)`;
-
-    // Onde o rosto precisa cair: o meio da faixa na altura dele. A última faixa
-    // tem a borda direita reta em vez de inclinada, e por isso seu meio fica bem
-    // mais à direita — foi o que partia o rosto do segundo instrutor ao meio.
-    const alvo = ultima
-      ? (t0 - CORTE * ROSTO + 100) / 2
-      : (t0 + t1) / 2 - CORTE * ROSTO;
-
-    // A foto é centrada nesse alvo e alargada o quanto for preciso para ainda
-    // cobrir a faixa inteira, sem deixar canto descoberto.
-    const limEsq = t0 - CORTE;
-    const limDir = ultima ? 100 : t1;
-    const esquerda = Math.min(limEsq, 2 * alvo - limDir);
-    const largura = 2 * (alvo - esquerda);
-    return { recorte, estilo: `left:${esquerda}%;width:${largura}%` };
-  });
-
-  return `<div class="elenco" style="clip-path:polygon(${CORTE}% 0, 100% 0, 100% 100%, 0 100%)">
-    ${mostra.map((ins, k) => `<span class="faixa" style="clip-path:${faixas[k].recorte}"
-       title="${esc(ins.instrutor)} · ${ins.total} leads · ${ins.vendas} vendas">
-       ${foto('rosto', ins.slug, ins.instrutor, `style="${faixas[k].estilo}"`)}
-     </span>`).join('')}
-    ${resto > 0 ? `<span class="mais">+${resto}</span>` : ''}
-  </div>`;
-}
-
-/* ---------------- Topo ---------------- */
-
-function renderMenu() {
-  const admin = ehAdmin();
-  menu.innerHTML = `
-    <div class="eu-quem">
-      ${admin
-        ? `<span class="eu-selo">${esc(iniciais(eu.nome))}</span>`
-        : foto('eu-selo', eu.fotoSlug, eu.nome)}
-      <span class="eu-nome">${esc(eu.nome)}</span>
-      <span class="eu-papel">${admin ? 'Gestão' : 'Instrutor'}</span>
-    </div>
-    <span class="fio-vertical"></span>
-    ${admin ? '<a class="link-topo" href="#/instrutores">Instrutores</a><span class="fio-vertical"></span>' : ''}
-    <button class="link-topo" type="button" id="tema">${rotuloTema()}</button>
-    <span class="fio-vertical"></span>
-    <button class="link-topo" type="button" id="sair">Sair</button>`;
-  tratarFotosQuebradas(menu);
-  document.getElementById('tema').addEventListener('click', alternarTema);
-  document.getElementById('sair').addEventListener('click', async () => {
-    await fetch('/api/logout', { method: 'POST' });
-    location.href = '/login';
-  });
-}
-
-// O botão mostra o tema para onde vai, não o que está valendo.
-const rotuloTema = () => (document.documentElement.dataset.tema === 'claro' ? 'Escuro' : 'Claro');
-
-function alternarTema() {
-  const novo = document.documentElement.dataset.tema === 'claro' ? 'escuro' : 'claro';
-  document.documentElement.dataset.tema = novo;
-  localStorage.setItem('hub-tema', novo);
-  document.getElementById('tema').textContent = rotuloTema();
-}
-
-/* ---------------- Home ---------------- */
-
-function esqueleto() {
-  return `<div class="esqueleto"><div></div><div></div><div></div></div>`;
-}
-
-async function telaHome() {
-  app.innerHTML = tituloLinha(ehAdmin() ? 'Todos os eventos' : 'Seus eventos') + esqueleto();
-
-  let eventos;
-  try { eventos = await pedir('/api/eventos'); }
-  catch {
-    app.innerHTML = `<div class="vazio"><h3>Não foi possível carregar</h3>
-      <p>A consulta aos dados falhou. Recarregue a página; se continuar, fale com o time de BI.</p></div>`;
-    return;
-  }
-
-  if (!eventos.length) {
-    app.innerHTML = tituloLinha(ehAdmin() ? 'Todos os eventos' : 'Seus eventos', '00') + (ehAdmin()
-      ? `<div class="vazio"><h3>Nenhum evento ainda</h3>
-           <p>Assim que os leads das palestras entrarem no funil, os eventos aparecem aqui.</p></div>`
-      : `<div class="vazio"><h3>Nenhuma palestra com lead seu ainda</h3>
-           <p>Assim que os contatos da sua próxima palestra entrarem no sistema, o evento aparece
-              aqui. Se você palestrou nos últimos dias e nada apareceu, fale com o time de BI.</p></div>`);
-    return;
-  }
-
-  app.innerHTML = tituloLinha(ehAdmin() ? 'Todos os eventos' : 'Seus eventos', dd(eventos.length)) + `
-    <div class="grade">
-      ${eventos.map((e) => `
-        <a class="card-evento" href="#/evento/${encodeURIComponent(e.slug)}">
-          ${tituloEvento(e.evento)}
-          ${elenco(e.instrutores)}
-          <div class="metricas">
-            ${metrica(e.total, 'leads')}
-            <span class="fio"></span>
-            ${metrica(e.vendas, 'vendas')}
-            <span class="fio"></span>
-            ${metrica(pct(e.taxaConversao), 'conversão')}
-          </div>
-          <div class="barra-conv"><i style="width:${pct(e.taxaConversao)}"></i></div>
-        </a>`).join('')}
-    </div>`;
-
-  tratarFotosQuebradas(app);
-}
-
-/* ---------------- Evento ---------------- */
-
-function cardLead(l) {
-  const detalhe = [l.curso, l.dataVenda, l.vendedor].filter(Boolean).join(' · ');
-  const venda = l.vendeu
-    ? `<div class="venda" title="${esc(detalhe)}">
-         <span class="ponto" aria-hidden="true"></span>
-         <span class="curso">${esc(l.curso ?? 'Venda registrada')}</span>
-       </div>`
-    : '';
-  return `<div class="card-lead">
-    <div class="ln">${esc(l.nome)}</div>
-    <div class="contato">
-      <span>${l.telefone ? esc(mascararTelefone(l.telefone)) : 'sem telefone'}</span>
-      ${l.email ? `<span class="email">${esc(mascararEmail(l.email))}</span>` : ''}
-    </div>
-    ${venda}
-  </div>`;
-}
-
 function renderKanban() {
-  const { detalhe: d, filtroInstrutor: filtro } = estado;
-  document.getElementById('kanban').innerHTML = d.colunas.map((c, i) => {
-    const leads = filtro ? c.leads.filter((l) => l.instrutorSlug === filtro) : c.leads;
-    return `<div class="coluna">
+  const { detalhe: d, filtroInstrutor: filtro, etapaAberta } = estado;
+  const porColuna = d.colunas.map((c) => (filtro ? c.leads.filter((l) => l.instrutorSlug === filtro) : c.leads));
+
+  document.getElementById('chips').innerHTML = d.colunas.map((c, i) =>
+    `<button type="button" class="${i === etapaAberta ? 'on' : ''}" data-etapa="${i}">
+      ${esc(c.etapaName)} ${porColuna[i].length}</button>`).join('');
+
+  document.getElementById('kanban').innerHTML = d.colunas.map((c, i) => `
+    <div class="coluna${i === etapaAberta ? ' aberta' : ''}">
       <h4>
-        <span class="ordem">${dd(i + 1)}</span>
-        <span class="etapa" title="${esc(c.etapaName)}">${esc(c.etapaName)}</span>
+        <span>${esc(c.etapaName)}</span>
         <span class="espaco"></span>
-        <span class="conta">${leads.length}</span>
+        <span class="conta">${porColuna[i].length}</span>
       </h4>
-      <div class="coluna-fio"></div>
       <div class="coluna-leads">
-        ${leads.map(cardLead).join('')
-          || '<p class="coluna-vazia"><span>Nenhum lead nesta etapa</span></p>'}
+        ${porColuna[i].map(cardLead).join('')
+          || '<p class="coluna-vazia">Nenhum lead nesta etapa</p>'}
       </div>
-    </div>`;
-  }).join('');
+    </div>`).join('');
+
+  document.querySelectorAll('#chips button').forEach((b) => {
+    b.addEventListener('click', () => { estado.etapaAberta = Number(b.dataset.etapa); renderKanban(); });
+  });
   document.querySelectorAll('.instrutor').forEach((el) => {
     el.classList.toggle('ativo', el.dataset.slug === filtro);
   });
@@ -286,58 +305,44 @@ async function telaDetalhe(slug) {
       <p>Ele pode ter saído do funil, ou não há lead seu nele. <a href="#/">Voltar aos eventos</a></p></div>`;
     return;
   }
-  estado = { detalhe: d, filtroInstrutor: null };
+  estado = { detalhe: d, filtroInstrutor: null, etapaAberta: 0 };
 
   const admin = ehAdmin();
   const podeFiltrar = admin && d.instrutores.length > 1;
-  const meu = d.instrutores[0];
-
-  const legenda = `<div class="legenda"><span class="ponto"></span><span>Vendeu</span></div>`;
 
   app.innerHTML = `
-    <a class="voltar" href="#/">← ${admin ? 'Eventos' : 'Seus eventos'}</a>
-    <div class="cabecalho-evento">
-      ${tituloEvento(d.evento)}
-      <div class="metricas">
-        ${metrica(d.resumo.total, 'leads')}
-        <span class="fio"></span>
-        ${metrica(d.resumo.vendas, 'vendas')}
-        <span class="fio"></span>
-        ${metrica(pct(d.resumo.taxaConversao), 'conversão')}
+    <a class="voltar" href="#/">← Eventos</a>
+    <div class="faixa-evento">
+      ${elenco(d.instrutores, 1)}
+      <div class="miolo">
+        <div>
+          ${tituloEvento(d.evento)}
+          <div class="ev-quem">${admin ? esc(quemNoPalco(d.instrutores)) : 'Seu recorte deste evento'}</div>
+        </div>
+        ${metricas(d.resumo)}
       </div>
     </div>
 
     ${admin ? `
-      ${tituloLinha('Instrutores no palco', `${dd(d.instrutores.length)}${podeFiltrar ? ' · clique para filtrar o quadro' : ''}`)}
-      <div class="grade-instrutores">
-        ${d.instrutores.map((ins) => `
-          <div class="instrutor" data-slug="${esc(ins.slug)}">
-            ${foto('foto', ins.slug, ins.instrutor)}
-            <div class="nome">${esc(ins.instrutor)}</div>
-            <div class="nums">
-              <span class="n">${ins.total}</span><span class="l">leads</span>
-              <span class="fio"></span>
-              <span class="n">${ins.vendas}</span><span class="l">vendas</span>
-            </div>
-          </div>`).join('')}
-      </div>
-      ${tituloLinha('Quadro · todos os instrutores', undefined, legenda)}
-    ` : `
-      <div class="faixa-eu">
-        ${foto('retrato', meu?.slug ?? eu.fotoSlug, meu?.instrutor ?? eu.nome)}
-        <div class="quem">
-          <span class="nome">${esc(meu?.instrutor ?? eu.nome)}</span>
-          <span class="rotulo">Seu recorte deste evento</span>
-        </div>
-        <span class="espaco"></span>
-        <div class="nums">
-          <div><div class="n">${d.resumo.total}</div><div class="l">leads</div></div>
-          <div><div class="n">${d.resumo.vendas}</div><div class="l">vendas</div></div>
+      <div style="margin-top:30px">
+        ${tituloLinha('Instrutores no palco', podeFiltrar ? 'clique para filtrar o quadro' : '')}
+        <div class="grade-instrutores">
+          ${d.instrutores.map((ins) => `
+            <div class="instrutor" data-slug="${esc(ins.slug)}">
+              ${elenco([ins], 1)}
+              <div class="miolo">
+                <span class="nome">${esc(ins.instrutor)}</span>
+                ${metricas(ins, { conversao: false })}
+              </div>
+            </div>`).join('')}
         </div>
       </div>
-      ${tituloLinha('Quadro', undefined, legenda)}
-    `}
+      <div style="margin-top:32px">
+        ${tituloLinha('Quadro', 'todos os instrutores', legendaVenda)}
+      </div>
+    ` : `<div style="margin-top:30px">${tituloLinha('Seus leads', '', legendaVenda)}</div>`}
 
+    <div id="chips" class="chips"></div>
     <div id="kanban" class="kanban"></div>`;
 
   tratarFotosQuebradas(app);
@@ -383,13 +388,18 @@ async function telaInstrutores() {
 
   let usuarios, nomes;
   try { [usuarios, nomes] = await Promise.all([pedir('/api/admin/usuarios'), pedir('/api/admin/nomes')]); }
-  catch (e) { app.innerHTML = `<div class="vazio"><h3>Não foi possível carregar</h3><p>${esc(e.message)}</p></div>`; return; }
+  catch (e) {
+    app.innerHTML = `<div class="vazio"><h3>Não foi possível carregar</h3><p>${esc(e.message)}</p></div>`;
+    return;
+  }
 
   const orfaos = nomes.filter((n) => !n.dono);
 
   app.innerHTML = `
     <a class="voltar" href="#/">← Eventos</a>
-    ${tituloLinha('Instrutores', dd(usuarios.length))}
+    <div style="margin-top:22px">
+      ${tituloLinha('Instrutores', `${plural(usuarios.length, 'cadastrado', 'cadastrados')}`)}
+    </div>
 
     ${orfaos.length ? `
       <div class="aviso">
@@ -543,7 +553,7 @@ function ligarAdmin() {
 
 function telaTrocaSenha() {
   app.innerHTML = `
-    <div class="painel" style="max-width:430px;margin:6vh auto 0">
+    <div class="painel" style="max-width:420px;margin:5vh auto 0">
       <h3>Defina sua senha</h3>
       <p class="explica">Você entrou com uma senha provisória. Escolha uma nova para continuar.</p>
       <form id="troca">

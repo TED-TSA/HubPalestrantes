@@ -4,6 +4,7 @@ const enviar = document.getElementById('enviar');
 const rotulo = document.getElementById('rotulo');
 const senha = document.getElementById('senha');
 const olho = document.getElementById('olho');
+const rotuloTema = document.getElementById('rotulo-tema');
 
 // Um vídeo só, com um trecho de cada palestrante emendado — os cinco aparecem
 // em toda visita. Vídeo só onde ele não atrapalha: tela grande, sem economia de
@@ -20,6 +21,17 @@ function ligarFundo() {
   video.src = '/public/login/fundo.mp4';
   video.play().catch(() => {}); // autoplay bloqueado: o poster continua valendo
 }
+
+// O botão mostra o tema para onde vai, não o que está valendo.
+const nomeTema = () => (document.documentElement.dataset.tema === 'claro' ? 'Tema escuro' : 'Tema claro');
+rotuloTema.textContent = nomeTema();
+
+document.getElementById('tema').addEventListener('click', () => {
+  const novo = document.documentElement.dataset.tema === 'claro' ? 'escuro' : 'claro';
+  document.documentElement.dataset.tema = novo;
+  localStorage.setItem('hub-tema', novo);
+  rotuloTema.textContent = nomeTema();
+});
 
 olho.addEventListener('click', () => {
   const mostrando = senha.type === 'text';
@@ -56,7 +68,7 @@ form.addEventListener('submit', async (ev) => {
     erro.textContent = 'Sem conexão com o servidor.';
   }
   enviar.disabled = false;
-  rotulo.textContent = 'Acessar o Hub';
+  rotulo.textContent = 'Acessar o hub';
 });
 
 ligarFundo();

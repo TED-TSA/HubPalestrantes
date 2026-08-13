@@ -36,8 +36,8 @@ não precisa existir.
 - **Sem framework.** A tela é montada com template strings e `innerHTML`.
 - **Público em Windows + Chrome**, e precisa ser usável no celular.
 
-Tamanho do frontend inteiro hoje: **1.481 linhas** (`app.js` 594, `styles.css`
-684, o resto HTML). É pequeno de propósito.
+Tamanho do frontend inteiro hoje: cerca de **1.400 linhas** (`app.js` e
+`styles.css` somam 1.095). É pequeno de propósito.
 
 ---
 
@@ -92,23 +92,20 @@ nova:
 
 ### 4.2 Tipografia e estrutura
 
-- **Display:** `Bahnschrift` (a DIN condensada do Windows), fallbacks
-  `DIN Alternate`, `Segoe UI Variable Display`. Carrega toda a estrutura —
-  títulos, rótulos, números — em caixa alta com espaçamento largo.
-- **Corpo:** `Segoe UI Variable Text`. Fica só nos nomes próprios e textos
-  corridos.
+- **Display:** `Franklin Gothic Medium`, com `Corbel` de reserva. Titulos em caixa baixa e
+  peso medio.
+- **Corpo:** `Corbel`. Carrega quase tudo: a v4 abandonou a caixa alta com
+  espaçamento largo como estrutura.
 - **Mono:** `Cascadia Mono` / `Consolas` para telefone e e-mail — são dados de
   conferir dígito a dígito, não texto de ler.
-- **Nada tem canto arredondado.** Nenhum `border-radius` em card, coluna, botão
-  ou campo. As únicas exceções são o ponto verde de venda e o toggle.
-
+- **Cantos quase retos:** 5px nos cards, 4px em campos e botões. Nada mais.
 ### 4.3 O corte diagonal
 
-É o gesto que dá identidade às fotos. A foto entra pela direita do card e é
+É o gesto que dá identidade às fotos. A foto entra pela direita e é
 cortada por uma aresta inclinada, marcada por um fio âmbar de 1px.
 
-- A inclinação é **30%** da largura da área de foto (era 46%, foi suavizada para
-  mostrar mais rosto).
+- A inclinação é **30%** da largura da área de foto. A área em si mudou por tela:
+  47% no card de evento, 62% no card de instrutor, 26% na faixa do evento.
 - Com mais de um instrutor, a área é dividida em **faixas paralelas**, uma por
   pessoa, separadas pelo mesmo fio.
 - Teto de **três faixas** no card de evento: na quarta a largura cai para uns
@@ -133,9 +130,11 @@ Card central de 1000px partido ao meio, no padrão do sistema financeiro da casa
 - **Esquerda:** vídeo em loop, preto e branco, mudo, 720×1280, 5,7 MB. É uma
   montagem com 5 a 6 segundos de cada um dos cinco palestrantes (Luiz Hota,
   Elidiano, Siqueira, Bam, Tonho). Por cima: selo TS, "HUB DO PALESTRANTE" em
-  display, três itens numerados com filete, e o rodapé.
+  display em caixa baixa com uma régua âmbar acima, e o rodapé. Os itens
+  numerados da versão anterior saíram.
 - **Direita:** "Bem-vindo de volta", campos com ícone SVG, olho de mostrar senha,
-  "Manter conectado" e o botão âmbar sólido "Acessar o Hub →".
+  "Manter conectado", o botão âmbar "Acessar o hub →" e, no rodapé, o seletor de
+  tema com ícone de sol.
 - O vídeo só baixa em tela grande, fora de economia de dados e sem preferência
   por menos movimento. Nos outros casos fica o frame estático.
 - Erro **sempre genérico** ("Email ou senha inválidos"). Não mudar: revelaria
@@ -143,28 +142,31 @@ Card central de 1000px partido ao meio, no padrão do sistema financeiro da casa
 
 ### 5.2 Home — grade de eventos
 
-Cabeçalho de seção com rótulo, contagem e um fio ocupando o resto da linha.
-Cards de 300px mínimo:
+Título da seção em caixa baixa com uma frase ao lado ("3 palestras com leads
+registrados"). Cards largos, de 420 a 660px, com 236px de altura:
 
 - Nome partido em **sigla + número** (`CXJ` pesado, `3006` apagado).
-- **Foto dos instrutores cortada na diagonal**, ocupando 82% do card.
-- Três métricas no rodapé: leads, vendas, conversão — separadas por fios.
+- Uma linha dizendo quem subiu ao palco: "Elidiano e Bam no palco".
+- **Foto dos instrutores cortada na diagonal**, ocupando 47% do card.
+- Métricas em linha no rodapé: número grande colado no rótulo pequeno, com a
+  conversão em âmbar.
 - **Barra de conversão** de 2px na base do card, proporcional ao percentual.
 
 ### 5.3 Evento
 
-- Cabeçalho com sigla + número grandes e as três métricas à direita.
+- Uma faixa de 150px com sigla + número grandes, a linha de contexto e as três
+  métricas à direita, com a foto cortada na diagonal no canto.
 - **Instrutor vendo o próprio evento:** uma barra horizontal com foto, nome e
-  "SEU RECORTE DESTE EVENTO", métricas à direita. (Isto resolveu uma fraqueza
+  "Seu recorte deste evento", métricas à direita. (Isto resolveu uma fraqueza
   apontada no briefing anterior — antes era um card solitário que parecia sobra
   de um layout feito para vários.)
 - **Gestão:** grade "Instrutores no palco", cada card com o mesmo corte diagonal,
   nome em display e leads/vendas no pé. Clicar filtra o quadro.
-- **Kanban:** colunas geradas pelos dados (as `EtapaName` que existirem, na ordem
-  do funil), numeradas `01/02/03`, com contagem à direita e um filete de 2px
-  abaixo do cabeçalho. Cards de lead com nome, telefone e e-mail mascarados em
-  mono, e — quando houve venda — um filete, ponto verde e o nome do curso.
-- Legenda "● VENDEU" na linha do título do quadro.
+- **Kanban sem caixa:** cada coluna é um título com um filete de 2px embaixo e os
+  leads separados por hairline. Card de lead: nome (e, para a gestão, o nome do
+  instrutor à direita), telefone e e-mail mascarados em mono, e — quando houve
+  venda — um filete, ponto verde e o curso, tudo em verde.
+- Legenda "● comprou" na linha do título do quadro.
 
 ### 5.4 Cadastro de instrutores (só gestão)
 
@@ -193,9 +195,8 @@ Todas com motivo, mas abertas a discussão:
 | Corte diagonal a 46% | 30% | Mostrava pouca foto |
 | Fotos em P&B | **Coloridas** | Pedido do cliente |
 
-Também **não foi implementada** a versão de celular do kanban que troca colunas
-por chips de etapa. Hoje as colunas viram uma pilha vertical: funciona, mas é
-longa de rolar.
+A versão de celular do kanban **foi implementada** na v4: abaixo de 760px as
+colunas somem e entram chips de etapa, mostrando uma etapa por vez.
 
 ---
 

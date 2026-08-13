@@ -1,20 +1,20 @@
-/* Hub do Palestrante — sistema visual.
+/* Hub do Palestrante — sistema visual (v4).
    Portado do desenho entregue pelo time de design (React + CDN, não utilizável
    aqui) para CSS puro, com os valores extraídos do markup original.
 
-   Duas regras estruturais do desenho: nada tem canto arredondado, e a fonte
-   condensada em caixa alta com muito espaçamento carrega toda a estrutura —
-   títulos, rótulos e números. O corpo de texto fica só nos nomes próprios. */
-/* O tema efetivo é resolvido em JS e escrito em data-tema no <html>, num script
-   inline no <head> — assim a página já nasce na cor certa, sem piscar escuro
-   antes de virar claro. */
+   A v4 abandona a caixa alta com espaçamento largo como estrutura: os títulos
+   passam a caixa baixa em peso médio, e o kanban perde as caixas das colunas —
+   sobram um filete embaixo do título e hairlines entre os leads.
+
+   O tema efetivo é resolvido em JS e escrito em data-tema no <html>, num script
+   inline no <head> — assim a página já nasce na cor certa, sem piscar escura
+   antes de virar clara. */
 :root {
   color-scheme: dark;
 
   --bg: #08080a;
   --surface: #131317;
   --surface-alta: #1b1b21;
-  --surface-hover: #16161b;
   --borda: #26262f;
   --borda-fina: #1b1b21;
   --borda-viva: #3a3a46;
@@ -23,19 +23,18 @@
   --fraco: #63616c;
   --apagado: #4b4956;
   --acento: #e8b44a;
-  --acento-claro: #f5d08a;
+  --acento-claro: #f2cd84;
   /* Âmbar de preenchimento: sempre o vivo, porque leva texto escuro por cima.
      O --acento acima é o de texto e traço, e no tema claro precisa escurecer
      para ter contraste sobre branco. */
   --acento-solido: #e8b44a;
   --venda: #3fd69b;
   --alerta: #ff9b8a;
-  --sombra-texto: rgba(8, 8, 10, .95);
   --campo-fundo: rgba(255, 255, 255, .03);
 
-  --dpy: Bahnschrift, 'DIN Alternate', 'Segoe UI Variable Display', 'Arial Narrow', system-ui, sans-serif;
-  --bdy: 'Segoe UI Variable Text', 'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', sans-serif;
-  --mn: ui-monospace, 'Cascadia Mono', Consolas, 'SF Mono', Menlo, monospace;
+  --dp: 'Franklin Gothic Medium', 'Franklin Gothic', 'Libre Franklin', Corbel, 'Segoe UI', sans-serif;
+  --ui: Corbel, 'Segoe UI Variable Text', 'Segoe UI', system-ui, sans-serif;
+  --mn: 'Cascadia Mono', Consolas, 'Courier New', monospace;
 }
 
 :root[data-tema="claro"] {
@@ -44,21 +43,19 @@
   --bg: #f2efe9;
   --surface: #ffffff;
   --surface-alta: #f7f5f0;
-  --surface-hover: #fbfaf7;
   --borda: #e0dbd1;
   --borda-fina: #ece8e0;
   --borda-viva: #c4bdb0;
   --texto: #14130f;
   --suave: #56534c;
   --fraco: #7a766d;
-  --apagado: #837e73;
+  --apagado: #99948a;
   /* #e8b44a sobre branco fica em 1,8:1 — ilegível como texto. Este âmbar
      escuro passa de 4,5:1 e mantém a mesma família de cor. */
   --acento: #96660a;
   --acento-claro: #7d5405;
   --venda: #0a7a52;
   --alerta: #b3311c;
-  --sombra-texto: rgba(255, 255, 255, .95);
   --campo-fundo: rgba(0, 0, 0, .025);
 }
 
@@ -66,475 +63,302 @@
 
 body {
   margin: 0; background: var(--bg); color: var(--texto);
-  font-family: var(--bdy); -webkit-font-smoothing: antialiased;
+  font-family: var(--ui); -webkit-font-smoothing: antialiased;
 }
 a { color: var(--acento); text-decoration: none; }
 a:hover { color: var(--acento-claro); }
 :focus-visible { outline: 2px solid var(--acento); outline-offset: 2px; }
 
-@keyframes respira { 0%, 100% { opacity: .28; } 50% { opacity: .6; } }
-@keyframes subir { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
+@keyframes pulso { 0%, 100% { opacity: .45; } 50% { opacity: .8; } }
+@keyframes subir { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
 
 /* ---------- Topo ---------- */
 .topo {
   display: flex; align-items: center; justify-content: space-between;
-  height: 70px; padding: 0 40px;
-  border-bottom: 1px solid var(--borda-fina);
+  height: 64px; padding: 0 34px;
+  border-bottom: 1px solid var(--borda);
   background: var(--bg); position: sticky; top: 0; z-index: 10;
 }
-.marca-bloco { display: flex; align-items: center; gap: 12px; }
+.marca-bloco { display: flex; align-items: center; gap: 13px; }
 .selo-ts {
-  width: 24px; height: 24px; background: var(--acento-solido); color: #0b0b0d;
-  font-family: var(--dpy); font-size: 12px; font-weight: 700;
-  display: flex; align-items: center; justify-content: center; flex: 0 0 auto;
+  width: 25px; height: 25px; flex: 0 0 auto;
+  background: var(--acento-solido); color: #14130f;
+  font-family: var(--ui); font-size: 11px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
 }
-.marca {
-  font-family: var(--dpy); font-size: 14px; letter-spacing: .19em;
-  text-transform: uppercase; color: var(--texto);
-}
+.marca { font-family: var(--dp); font-size: 17px; letter-spacing: .005em; color: var(--texto); }
 .marca:hover { color: var(--texto); }
-.fio-vertical { width: 1px; height: 15px; background: var(--borda); flex: 0 0 auto; }
-.sub {
-  font-family: var(--dpy); font-size: 10px; letter-spacing: .24em;
-  text-transform: uppercase; color: var(--fraco);
-}
+.fio-vertical { width: 1px; height: 16px; background: var(--borda); flex: 0 0 auto; }
 
-.eu { display: flex; align-items: center; gap: 18px; }
-.eu-quem { display: flex; align-items: center; gap: 11px; }
+.eu { display: flex; align-items: center; gap: 22px; }
+.eu-quem { display: flex; align-items: center; gap: 9px; }
 .eu-selo {
-  width: 28px; height: 28px; object-fit: cover;
+  width: 26px; height: 26px; flex: 0 0 auto; object-fit: cover;
   background: var(--surface-alta); border: 1px solid var(--borda);
-  font-family: var(--dpy); font-size: 11px; letter-spacing: .06em; color: var(--suave);
-  display: flex; align-items: center; justify-content: center; flex: 0 0 auto;
+  font-family: var(--ui); font-size: 10.5px; font-weight: 600; color: var(--suave);
+  display: flex; align-items: center; justify-content: center;
   filter: grayscale(1);
 }
-.eu-nome { font-size: 13px; color: var(--texto); }
-.eu-papel {
-  font-family: var(--dpy); font-size: 10px; letter-spacing: .2em;
-  text-transform: uppercase; color: var(--fraco);
-}
+.eu-nome { font-size: 13.5px; }
+.eu-papel { font-size: 12.5px; color: var(--fraco); }
 .link-topo {
   background: none; border: none; padding: 0; cursor: pointer;
-  font-family: var(--dpy); font-size: 11px; letter-spacing: .19em;
-  text-transform: uppercase; color: var(--suave);
-  transition: color .15s ease;
+  font-family: var(--ui); font-size: 13.5px; color: var(--suave);
+  transition: color .16s ease;
 }
-.link-topo:hover, .link-topo.ativo { color: var(--acento); }
+.link-topo:hover, .link-topo.ativo { color: var(--texto); }
 
 /* ---------- Conteúdo ---------- */
-.conteudo { max-width: 1560px; margin: 0 auto; padding: 56px 40px 64px; position: relative; }
-/* Brilho quente no alto da página, como a luz de um refletor distante. */
-.conteudo::before {
-  content: ''; position: absolute; top: -70px; left: 0; right: 0; height: 340px;
-  background: radial-gradient(900px 260px at 50% -110px, rgba(232, 180, 74, .07), transparent 70%);
-  pointer-events: none;
-}
+.conteudo { max-width: 1560px; margin: 0 auto; padding: 38px 34px 44px; }
 
-/* Cabeçalho de seção: rótulo, contagem e um fio que ocupa o resto da linha. */
-.titulo-linha { display: flex; align-items: baseline; gap: 16px; margin: 0 0 18px; }
-/* Respiro só quando a faixa vem depois de outro bloco; na home ela abre a
-   página e não precisa. */
-.faixa-eu + .titulo-linha,
-.grade-instrutores + .titulo-linha,
-.cabecalho-evento + .titulo-linha { margin-top: 38px; }
-.titulo-linha + .grade, .titulo-linha + .vazio { margin-top: 12px; }
-.titulo-secao {
-  font-family: var(--dpy); font-size: 15px; letter-spacing: .22em;
-  text-transform: uppercase; color: var(--texto); margin: 0;
+/* Título de seção: nome em caixa baixa e, ao lado, uma frase contando o que tem
+   ali — no lugar do rótulo em versalete com contador. */
+.titulo-linha { display: flex; align-items: baseline; gap: 12px; margin-bottom: 20px; }
+.titulo-secao { font-family: var(--dp); font-size: 17px; font-weight: 500; margin: 0; }
+.titulo-nota { font-size: 13px; color: var(--fraco); }
+.titulo-linha .espaco { flex: 1; }
+
+.legenda { display: flex; align-items: center; gap: 7px; }
+.legenda .ponto { width: 7px; height: 7px; border-radius: 50%; background: var(--venda); }
+.legenda span { font-size: 12.5px; color: var(--suave); }
+
+/* ---------- Métricas em linha ---------- */
+/* Número grande colado no rótulo pequeno, na mesma linha de base. */
+.metricas { display: flex; align-items: baseline; gap: 18px; }
+.metrica { font-size: 13.5px; color: var(--suave); white-space: nowrap; }
+.metrica b {
+  font-family: var(--ui); font-weight: 600; font-size: 25px; color: var(--texto);
+  margin-right: 4px;
 }
-.titulo-conta { font-family: var(--dpy); font-size: 13px; letter-spacing: .14em; color: var(--fraco); }
-.titulo-fio { flex: 1; height: 1px; background: var(--borda-fina); }
+.metrica.conv b { color: var(--acento); }
 
 /* ---------- Home: grade de eventos ---------- */
-.grade { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 18px; }
+/* Cards largos em vez de uma grade de quadradinhos: cabem o nome do evento,
+   quem subiu ao palco e as três métricas sem apertar. */
+.grade {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 660px));
+  justify-content: start; gap: 18px;
+}
 .card-evento {
-  position: relative; overflow: hidden;
-  display: flex; flex-direction: column; justify-content: space-between;
-  min-height: 214px; padding: 26px 26px 0;
-  background: var(--surface); border: 1px solid var(--borda);
+  position: relative; height: 236px; overflow: hidden; display: block;
+  background: var(--surface); border: 1px solid var(--borda); border-radius: 5px;
   color: inherit; text-decoration: none;
-  transition: border-color .18s ease;
+  transition: border-color .16s ease;
 }
-/* O fundo não muda mais no hover: o véu à esquerda é opaco e um fundo diferente
-   por baixo dele criaria uma emenda visível. */
-.card-evento:hover, .card-evento:focus-visible {
-  border-color: var(--borda-viva); border-top-color: var(--acento); color: inherit;
-}
+.card-evento:hover, .card-evento:focus-visible { border-color: var(--borda-viva); color: inherit; }
 
-/* Nome de evento é sigla + número ("CXJ 3006"). O desenho separa os dois: a
-   sigla identifica, o número é só sequência. */
-.ev-nome { display: flex; align-items: baseline; gap: 10px; }
-/* Sombra porque agora o véu é curto e o nome encosta na foto. */
-.ev-nome .sigla {
-  font-family: var(--dpy); font-size: 42px; line-height: .9;
-  letter-spacing: .005em; text-transform: uppercase; color: var(--texto);
-  text-shadow: 0 2px 16px var(--sombra-texto);
+.miolo {
+  position: relative; height: 100%;
+  display: flex; flex-direction: column; justify-content: space-between;
+  padding: 26px 26px 22px; pointer-events: none;
 }
-/* Um tom acima do cinza do desenho: ali era fundo liso, aqui é foto. */
-.ev-nome .num {
-  font-family: var(--dpy); font-size: 26px; line-height: .9; color: var(--suave);
-  text-shadow: 0 2px 16px var(--sombra-texto), 0 0 3px var(--sombra-texto);
-}
+.ev-nome { display: flex; align-items: baseline; gap: 11px; }
+.ev-nome .sigla { font-family: var(--dp); font-size: 46px; line-height: .9; letter-spacing: .01em; text-transform: uppercase; }
+.ev-nome .num { font-family: var(--dp); font-size: 28px; line-height: .9; color: var(--fraco); }
+.ev-quem { font-size: 13px; color: var(--suave); margin-top: 11px; }
 
-/* Quem subiu ao palco naquele evento, cortado no próprio card. As fotos ficam
-   coloridas — mesma exceção do card de instrutor: é rosto de gente, não dado.
-   O fundo âmbar aparece nas frestas entre as faixas e vira o fio do corte. */
-/* O clip-path vem inline, calculado a partir do mesmo CORTE que posiciona as
-   fotos — se ficasse aqui, o ângulo viveria escrito em dois lugares. */
-.card-evento .elenco {
-  position: absolute; top: 0; right: 0; bottom: 0; width: 82%; z-index: 1;
-  background: rgba(232, 180, 74, .5);
-}
-/* O recorte da faixa fica no invólucro, em coordenadas do card. A foto por
-   dentro anda livre — left e width vêm inline. */
-.card-evento .faixa { position: absolute; inset: 0; }
-.card-evento .rosto {
-  position: absolute; top: 0; bottom: 0;
-  object-fit: cover; object-position: center 30%;
+.barra-conv { position: absolute; left: 0; right: 0; bottom: 0; height: 2px; background: var(--borda); }
+.barra-conv > i { display: block; height: 2px; background: var(--acento-solido); }
+
+/* ---------- Fotos cortadas na diagonal ---------- */
+/* O fio âmbar é a própria forma pintada de âmbar, com a foto por cima deslocada
+   2px. Não dá para usar drop-shadow: clip-path recorta o resultado do filter e
+   apagaria a sombra junto. */
+.elenco { position: absolute; top: 0; right: 0; bottom: 0; }
+.faixa { position: absolute; inset: 0; background: var(--acento-solido); }
+/* A forma de dentro cobre a de fora menos 2px: é essa fresta que vira o fio. */
+.faixa .dentro { position: absolute; inset: 0; background: var(--surface-alta); overflow: hidden; }
+.faixa .rosto {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  object-fit: cover; object-position: center 22%;
   background: var(--surface-alta);
-  display: flex; align-items: center; justify-content: center;
-  font-family: var(--dpy); font-size: 22px; letter-spacing: .05em; color: var(--fraco);
 }
-.card-evento .mais {
-  position: absolute; top: 10px; right: 12px; z-index: 2;
-  font-family: var(--dpy); font-size: 12px; letter-spacing: .1em; color: var(--texto);
-  background: rgba(8, 8, 10, .72); padding: 3px 8px;
+.faixa .ini {
+  position: absolute; top: 50%; transform: translate(-50%, -50%);
+  font-family: var(--dp); letter-spacing: .05em; color: var(--suave); white-space: nowrap;
+}
+/* Véu horizontal: morre antes de chegar no rosto, e é o que deixa o texto
+   legível sem cobrir a foto. */
+.veu {
+  position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(90deg,
+    var(--surface) 0%,
+    color-mix(in srgb, var(--surface) 90%, transparent) 13%,
+    color-mix(in srgb, var(--surface) 16%, transparent) 29%,
+    transparent 40%);
 }
 
-/* Véu em duas camadas: pela esquerda para o nome, pelo pé para as métricas. */
-.card-evento::after {
-  content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 2;
-  background:
-    linear-gradient(0deg, rgba(8, 8, 10, .95) 16%, rgba(8, 8, 10, .5) 30%, rgba(8, 8, 10, 0) 48%),
-    linear-gradient(101deg,
-      var(--surface) 20%, rgba(19, 19, 23, .55) 32%, rgba(19, 19, 23, .12) 46%, rgba(19, 19, 23, 0) 58%);
-}
-.card-evento > .ev-nome, .card-evento > .metricas, .card-evento > .barra-conv { position: relative; z-index: 3; }
-.card-evento > .barra-conv { position: absolute; }
-
-.metricas {
-  display: flex; align-items: flex-end;
-  margin: 0 -26px; padding: 20px 26px 22px; border-top: 1px solid var(--borda-fina);
-}
-.metrica { flex: 1; }
-.metrica + .metrica { padding-left: 20px; }
-.metrica .n {
-  font-family: var(--dpy); font-size: 28px; line-height: 1;
-  font-variant-numeric: tabular-nums;
-}
-.metrica .l {
-  font-family: var(--dpy); font-size: 9.5px; letter-spacing: .2em;
-  text-transform: uppercase; color: var(--fraco); margin-top: 6px;
-}
-.metricas .fio { width: 1px; height: 30px; background: var(--borda); flex: 0 0 auto; }
-
-/* A conversão vira barra na base do card: dá a leitura sem precisar comparar
-   números entre cards. */
-.barra-conv { position: absolute; left: 0; right: 0; bottom: 0; height: 2px; background: var(--borda-fina); }
-.barra-conv > i { display: block; height: 2px; background: var(--acento); }
+.card-evento .elenco { width: 47%; }
+.card-evento .faixa .ini { font-size: 30px; }
 
 /* ---------- Evento ---------- */
-.voltar {
-  font-family: var(--dpy); font-size: 11px; letter-spacing: .2em;
-  text-transform: uppercase; color: var(--suave);
-}
-.voltar:hover { color: var(--acento); }
+.voltar { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: var(--suave); }
+.voltar:hover { color: var(--texto); }
 
-.cabecalho-evento {
-  display: flex; align-items: flex-end; justify-content: space-between; gap: 24px;
-  margin: 18px 0 0; padding-bottom: 22px; border-bottom: 1px solid var(--borda);
+.faixa-evento {
+  position: relative; margin-top: 18px; height: 150px; overflow: hidden;
+  background: var(--surface); border: 1px solid var(--borda); border-radius: 5px;
 }
-.cabecalho-evento .ev-nome .sigla { font-size: 52px; }
-.cabecalho-evento .ev-nome .num { font-size: 34px; }
-.cabecalho-evento .metricas { margin: 0; padding: 0; border-top: none; gap: 26px; align-items: center; }
-.cabecalho-evento .metrica { flex: 0 0 auto; text-align: right; }
-.cabecalho-evento .metrica + .metrica { padding-left: 0; }
-.cabecalho-evento .metrica .n { font-size: 32px; }
-.cabecalho-evento .metricas .fio { height: 36px; }
+.faixa-evento .elenco { width: 26%; }
+.faixa-evento .faixa .ini { font-size: 26px; }
+.faixa-evento .miolo {
+  flex-direction: row; align-items: center; justify-content: space-between;
+  padding: 0 30px;
+}
+.faixa-evento .ev-nome .sigla { font-size: 54px; }
+.faixa-evento .ev-nome .num { font-size: 32px; }
+.faixa-evento .ev-quem { margin-top: 12px; }
+.faixa-evento .metricas { gap: 24px; padding-right: 20%; }
+.faixa-evento .metrica { font-size: 14px; }
+.faixa-evento .metrica b { font-size: 31px; }
 
-/* Faixa do próprio instrutor. Um card solto com a foto dele parecia sobra de um
-   layout feito para vários; a barra assume que ali só existe ele. */
-.faixa-eu {
-  display: flex; align-items: stretch; gap: 24px; margin-top: 28px;
-  background: var(--surface); border: 1px solid var(--borda);
-  border-top: 1px solid var(--acento); padding: 20px 24px;
-}
-.faixa-eu .retrato {
-  width: 64px; height: 64px; object-fit: cover; flex: 0 0 auto;
-  background: var(--surface-alta); border: 1px solid var(--borda);
-  font-family: var(--dpy); font-size: 22px; letter-spacing: .05em; color: var(--suave);
-  display: flex; align-items: center; justify-content: center;
-  filter: grayscale(1);
-}
-.faixa-eu .quem { display: flex; flex-direction: column; justify-content: center; gap: 5px; }
-.faixa-eu .nome {
-  font-family: var(--dpy); font-size: 24px; line-height: 1;
-  text-transform: uppercase; letter-spacing: .02em;
-}
-.faixa-eu .rotulo {
-  font-family: var(--dpy); font-size: 10px; letter-spacing: .22em;
-  text-transform: uppercase; color: var(--fraco);
-}
-.faixa-eu .espaco { flex: 1; }
-.faixa-eu .nums { display: flex; align-items: center; gap: 22px; }
-.faixa-eu .nums .n { font-family: var(--dpy); font-size: 26px; line-height: 1; font-variant-numeric: tabular-nums; }
-.faixa-eu .nums .l {
-  font-family: var(--dpy); font-size: 9px; letter-spacing: .2em;
-  text-transform: uppercase; color: var(--fraco); margin-top: 5px;
-}
-
-/* Instrutores do evento (só a gestão vê mais de um).
-   Mesmo desenho do card de evento, com a foto entrando pela direita cortada na
-   diagonal. Aqui a foto é a única coisa colorida da interface: é o rosto de uma
-   pessoa, e a exceção à regra do preto e branco é proposital. */
-.grade-instrutores { display: grid; grid-template-columns: repeat(auto-fill, minmax(215px, 1fr)); gap: 14px; }
+/* Instrutores do evento (só a gestão vê mais de um). */
+.grade-instrutores { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 14px; }
 .instrutor {
-  position: relative; overflow: hidden; min-height: 172px;
-  display: flex; flex-direction: column; justify-content: space-between;
-  padding: 18px; cursor: pointer;
-  background: var(--surface); border: 1px solid var(--borda);
-  transition: border-color .18s ease;
+  position: relative; height: 206px; overflow: hidden; cursor: pointer;
+  background: var(--surface); border: 1px solid var(--borda); border-radius: 5px;
+  transition: border-color .16s ease;
 }
-.instrutor:hover { border-color: var(--borda-viva); border-top-color: var(--acento); }
-.instrutor.ativo { border-color: var(--acento); border-top-color: var(--acento); }
-
-/* O fio da diagonal: a mesma forma da foto, em âmbar, 2px à esquerda e por
-   baixo dela. Só a fresta sobra à vista. (Um drop-shadow não serviria: o
-   clip-path recorta o resultado do filter, apagando a sombra junto.) */
-.instrutor::before {
-  content: ''; position: absolute; top: 0; right: 0; bottom: 0; width: 74%;
-  transform: translateX(-2px); z-index: 0;
-  clip-path: polygon(46% 0, 100% 0, 100% 100%, 0 100%);
-  background: rgba(232, 180, 74, .55);
-  transition: transform .3s ease;
-}
-.instrutor:hover::before { transform: translateX(-2px) scale(1.04); }
-
-.instrutor .foto {
-  position: absolute; top: 0; right: 0; bottom: 0; width: 74%; z-index: 1;
-  object-fit: cover; object-position: center 22%;
-  /* O corte: a aresta desce da direita para a esquerda, alargando a foto no pé
-     do card. */
-  clip-path: polygon(46% 0, 100% 0, 100% 100%, 0 100%);
-  transition: transform .3s ease;
-  /* Fallback de iniciais herda a mesma forma. */
-  display: flex; align-items: center; justify-content: center;
-  background: var(--surface-alta);
-  font-family: var(--dpy); font-size: 30px; letter-spacing: .06em; color: var(--fraco);
-  padding-left: 26%;
-}
-/* O padding acima centra as iniciais na parte visível do recorte; numa <img>
-   ele encolheria a área do object-fit e deslocaria a foto. */
-.instrutor img.foto { padding: 0; }
-.instrutor:hover .foto { transform: scale(1.04); }
-
-/* Véu em duas camadas: uma pelo pé, senão os rótulos "leads" e "vendas" somem
-   dentro da parte clara da foto; outra pela esquerda, curta o bastante para não
-   dissolver a aresta diagonal, que é o ponto do desenho. */
-.instrutor::after {
-  content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 2;
+.instrutor:hover { border-color: var(--borda-viva); }
+.instrutor.ativo { border-color: var(--acento-solido); }
+.instrutor .elenco { width: 62%; }
+.instrutor .faixa .ini { font-size: 28px; }
+/* O card do instrutor é estreito e os números passam por baixo da foto. Um véu
+   no pé garante que "3 leads 0 vendas" continue legível. */
+.instrutor .veu {
   background:
-    linear-gradient(0deg, rgba(8, 8, 10, .94) 4%, rgba(8, 8, 10, .5) 20%, rgba(8, 8, 10, 0) 40%),
-    linear-gradient(101deg,
-      var(--surface) 20%, rgba(19, 19, 23, .5) 33%, rgba(19, 19, 23, .06) 48%, rgba(19, 19, 23, 0) 60%);
+    linear-gradient(0deg, color-mix(in srgb, var(--surface) 92%, transparent) 0%, transparent 34%),
+    linear-gradient(90deg,
+      var(--surface) 0%,
+      color-mix(in srgb, var(--surface) 90%, transparent) 13%,
+      color-mix(in srgb, var(--surface) 16%, transparent) 29%,
+      transparent 40%);
 }
-.instrutor .nome, .instrutor .nums { position: relative; z-index: 3; }
-
+.instrutor .miolo { padding: 18px; }
 .instrutor .nome {
-  font-family: var(--dpy); font-size: 22px; line-height: 1;
-  text-transform: uppercase; letter-spacing: .02em;
-  text-shadow: 0 1px 12px var(--sombra-texto);
+  font-family: var(--dp); font-size: 21px; line-height: 1;
+  letter-spacing: .02em; text-transform: uppercase;
 }
-.instrutor .nums { display: flex; align-items: baseline; gap: 7px; }
-.instrutor .nums .n {
-  font-family: var(--dpy); font-size: 20px; font-variant-numeric: tabular-nums;
-  text-shadow: 0 1px 12px var(--sombra-texto);
-}
-.instrutor .nums .l {
-  font-family: var(--dpy); font-size: 9px; letter-spacing: .16em;
-  text-transform: uppercase; color: var(--fraco);
-}
-.instrutor .nums .fio { width: 1px; height: 11px; background: var(--borda-viva); }
-
-.legenda { display: flex; align-items: center; gap: 8px; }
-.legenda .ponto { width: 6px; height: 6px; border-radius: 50%; background: var(--venda); }
-.legenda span {
-  font-family: var(--dpy); font-size: 10px; letter-spacing: .18em;
-  text-transform: uppercase; color: var(--fraco);
-}
+.instrutor .metricas { gap: 13px; }
+.instrutor .metrica { font-size: 12.5px; }
+.instrutor .metrica b { font-size: 20px; }
 
 /* ---------- Kanban ---------- */
-.kanban {
-  display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  gap: 18px; align-items: start;
-}
-.coluna { background: var(--surface); border: 1px solid var(--borda); padding: 16px 16px 18px; min-height: 340px; }
-.coluna h4 { display: flex; align-items: baseline; gap: 10px; padding-bottom: 14px; margin: 0; }
-/* O número não é enfeite: o funil é ordenado por EtapaId, então ele diz em que
-   altura do funil o instrutor está olhando. */
-.coluna h4 .ordem {
-  font-family: var(--dpy); font-size: 19px; line-height: 1;
-  color: var(--borda-viva); font-variant-numeric: tabular-nums;
-}
-.coluna h4 .etapa {
-  font-family: var(--dpy); font-size: 12.5px; letter-spacing: .18em;
-  text-transform: uppercase; color: var(--texto);
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+/* Sem caixa: a coluna é um título com filete embaixo e leads separados por
+   hairline. O quadro fica mais leve e cabe mais lead na tela. */
+.kanban { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 18px; align-items: start; }
+.coluna h4 {
+  display: flex; align-items: baseline; gap: 10px; margin: 0;
+  padding-bottom: 11px; border-bottom: 2px solid var(--borda);
+  font-family: var(--ui); font-size: 14.5px; font-weight: 600;
 }
 .coluna h4 .espaco { flex: 1; }
-.coluna h4 .conta { font-family: var(--dpy); font-size: 16px; color: var(--suave); font-variant-numeric: tabular-nums; }
-.coluna-fio { height: 2px; background: var(--borda); margin-bottom: 14px; }
-.coluna-leads { display: flex; flex-direction: column; gap: 10px; }
-.coluna-vazia { padding: 14px 0 0; border-top: 1px dotted var(--borda); margin: 0; }
-.coluna-vazia span {
-  font-family: var(--dpy); font-size: 10.5px; letter-spacing: .2em;
-  text-transform: uppercase; color: var(--apagado);
-}
+.coluna h4 .conta { font-family: var(--ui); font-weight: 600; font-size: 18px; color: var(--suave); }
+.coluna-leads { display: flex; flex-direction: column; padding-top: 4px; }
+.coluna-vazia { font-size: 13px; color: var(--apagado); padding: 15px 3px; margin: 0; }
 
-.card-lead {
-  background: var(--surface-alta); border: 1px solid var(--borda);
-  padding: 14px 15px; transition: border-color .18s ease;
-}
-.card-lead:hover { border-color: var(--borda-viva); border-top-color: var(--acento); }
-.card-lead .ln { font-size: 14px; line-height: 1.25; color: var(--texto); }
-.card-lead .contato { display: flex; flex-direction: column; gap: 3px; margin-top: 9px; }
-/* Telefone e e-mail em monoespaçada: são dados para conferir dígito a dígito,
-   não texto para ler. */
-.card-lead .contato span {
-  font-family: var(--mn); font-size: 11px; letter-spacing: .02em; color: var(--suave);
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-}
-.card-lead .contato .email { color: var(--fraco); }
+.card-lead { padding: 15px 3px; border-bottom: 1px solid var(--borda); transition: background .16s ease; }
+.card-lead:hover { background: var(--surface); }
+.card-lead .topo-lead { display: flex; align-items: baseline; gap: 10px; }
+.card-lead .ln { font-size: 15.5px; line-height: 1.25; flex: 1; }
+.card-lead .de { font-size: 12.5px; color: var(--fraco); white-space: nowrap; }
+.card-lead .tel { font-family: var(--mn); font-size: 13.5px; letter-spacing: .01em; color: var(--texto); margin-top: 10px; }
+.card-lead .email { font-family: var(--mn); font-size: 12px; color: var(--fraco); margin-top: 3px; }
 .card-lead .venda {
   display: flex; align-items: center; gap: 8px;
-  margin-top: 12px; padding-top: 11px; border-top: 1px solid var(--borda);
+  margin-top: 13px; padding-top: 12px; border-top: 1px solid var(--borda);
 }
-.card-lead .venda .ponto { width: 6px; height: 6px; border-radius: 50%; background: var(--venda); flex: 0 0 auto; }
-.card-lead .venda .curso {
-  font-size: 12px; color: var(--suave);
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-}
+.card-lead .venda .ponto { width: 7px; height: 7px; border-radius: 50%; background: var(--venda); flex: 0 0 auto; }
+.card-lead .venda .curso { font-size: 13px; color: var(--venda); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-/* ---------- Estados vazios e carregando ---------- */
-.vazio { padding: 10px 0 40px; max-width: 560px; }
-.vazio h3 {
-  font-family: var(--dpy); font-size: 26px; line-height: 1.15;
-  text-transform: uppercase; letter-spacing: .01em; color: var(--suave); margin: 0 0 14px;
+/* Chips de etapa: no celular o quadro vira lista, com a etapa escolhida no topo,
+   porque quatro colunas lado a lado não cabem. */
+.chips { display: none; gap: 8px; overflow-x: auto; padding: 4px 0 14px; }
+.chips button {
+  font-family: var(--ui); font-size: 12.5px; white-space: nowrap; cursor: pointer;
+  color: var(--suave); background: none; border: 1px solid var(--borda);
+  padding: 7px 14px; border-radius: 999px;
 }
-.vazio p { font-size: 14px; line-height: 1.6; color: var(--fraco); margin: 0; }
+.chips button.on { color: #08080a; background: var(--acento-solido); border-color: var(--acento-solido); }
 
-.esqueleto { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 18px; }
+/* ---------- Estados ---------- */
+.vazio { max-width: 620px; padding: 4px 0 32px; }
+.vazio h3 { font-family: var(--dp); font-size: 30px; font-weight: 500; line-height: 1.25; color: var(--suave); margin: 0 0 16px; }
+.vazio p { font-size: 14px; line-height: 1.65; color: var(--fraco); margin: 0; }
+
+.esqueleto { display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 660px)); justify-content: start; gap: 18px; }
 .esqueleto > div {
-  min-height: 206px; background: var(--surface); border: 1px solid var(--borda);
-  animation: respira 1.6s ease-in-out infinite;
+  height: 236px; background: var(--surface); border: 1px solid var(--borda); border-radius: 5px;
+  animation: pulso 1.6s ease-in-out infinite;
 }
 .esqueleto > div:nth-child(2) { animation-delay: .2s; }
-.esqueleto > div:nth-child(3) { animation-delay: .4s; }
 
 /* ---------- Formulários ---------- */
 .campo { display: block; margin-bottom: 16px; }
-.campo > span {
-  display: block; font-family: var(--dpy); font-size: 10px; letter-spacing: .2em;
-  text-transform: uppercase; color: var(--fraco); margin-bottom: 8px;
-}
+.campo > span { display: block; font-size: 12.5px; color: var(--suave); margin-bottom: 7px; }
 .campo input, .campo select {
-  width: 100%; height: 46px; padding: 0 14px;
+  width: 100%; height: 44px; padding: 0 13px;
   background: var(--campo-fundo); color: var(--texto);
-  border: 1px solid var(--borda); font-size: 14px; font-family: var(--bdy);
-  transition: border-color .15s ease;
+  border: 1px solid var(--borda); border-radius: 4px;
+  font-size: 13.5px; font-family: var(--ui);
+  transition: border-color .16s ease;
 }
 .campo input:focus, .campo select:focus { outline: none; border-color: var(--acento); }
 
 .botao {
-  height: 46px; padding: 0 22px; cursor: pointer;
-  background: var(--acento-solido); color: #0b0b0d; border: none;
-  font-family: var(--dpy); font-size: 12px; font-weight: 700;
-  letter-spacing: .16em; text-transform: uppercase;
-  transition: background .15s ease;
+  height: 44px; padding: 0 22px; cursor: pointer; border-radius: 4px;
+  background: var(--acento-solido); color: #14130f; border: none;
+  font-family: var(--ui); font-size: 13.5px; font-weight: 600;
+  transition: filter .16s ease;
 }
 .botao:hover { filter: brightness(1.06); }
 .botao[disabled] { opacity: .5; cursor: default; }
 .botao.discreto {
   background: none; color: var(--suave); border: 1px solid var(--borda);
-  height: 34px; padding: 0 14px; font-size: 10px;
+  height: 32px; padding: 0 13px; font-size: 12.5px; font-weight: 400;
 }
-.botao.discreto:hover { border-color: var(--acento); color: var(--acento); background: none; }
+.botao.discreto:hover { border-color: var(--acento); color: var(--acento); filter: none; }
 
 .erro { color: var(--alerta); font-size: 13px; min-height: 20px; margin: 4px 0 0; }
 .aviso {
-  border: 1px solid rgba(232, 180, 74, .3); border-left: 2px solid var(--acento);
-  background: rgba(232, 180, 74, .06);
-  padding: 14px 16px; font-size: 13px; line-height: 1.55; color: var(--acento);
-  margin-bottom: 24px;
+  border: 1px solid var(--borda); border-left: 2px solid var(--acento-solido);
+  border-radius: 4px; background: var(--surface);
+  padding: 14px 16px; font-size: 13px; line-height: 1.6; color: var(--suave);
+  margin-bottom: 22px;
 }
+.aviso strong { color: var(--texto); }
 
 /* ---------- Login ---------- */
-.pagina-login {
-  min-height: 100vh; display: grid; place-items: center; padding: 24px;
-  background:
-    radial-gradient(900px 300px at 50% 0%, rgba(232, 180, 74, .06), transparent 70%),
-    var(--bg);
-}
+.pagina-login { min-height: 100vh; display: grid; place-items: center; padding: 24px; background: var(--bg); }
 .cartao {
   display: grid; grid-template-columns: 1fr 1fr;
-  width: min(1000px, 100%); min-height: min(600px, 88vh);
-  border: 1px solid var(--borda);
-  animation: subir .6s cubic-bezier(.2, .7, .3, 1) both;
+  width: min(1000px, 100%); min-height: min(578px, 88vh);
+  border: 1px solid var(--borda); border-radius: 6px; overflow: hidden;
+  animation: subir .5s cubic-bezier(.2, .7, .3, 1) both;
 }
-
 .vitrine { position: relative; overflow: hidden; background: #101013; }
-.vitrine-video {
-  position: absolute; inset: 0; width: 100%; height: 100%;
-  object-fit: cover; filter: grayscale(1);
-}
+.vitrine-video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; filter: grayscale(1); }
 .vitrine-veu {
   position: absolute; inset: 0;
-  background: linear-gradient(150deg, rgba(8, 8, 10, .9) 0%, rgba(8, 8, 10, .62) 45%, rgba(8, 8, 10, .93) 100%);
+  background: linear-gradient(155deg, rgba(8, 8, 10, .86) 0%, rgba(8, 8, 10, .5) 45%, rgba(8, 8, 10, .92) 100%);
 }
-.vitrine-conteudo {
-  position: relative; z-index: 2; height: 100%;
-  display: flex; flex-direction: column; padding: 34px 38px;
-}
+.vitrine-conteudo { position: relative; z-index: 2; height: 100%; display: flex; flex-direction: column; padding: 32px 36px; }
 .vitrine-marca { display: flex; align-items: center; gap: 12px; }
-.vitrine h1 {
-  font-family: var(--dpy); font-size: 44px; line-height: 1;
-  text-transform: uppercase; letter-spacing: .005em; margin: auto 0 0;
-}
-.pontos { list-style: none; padding: 0; margin: 26px 0 0; }
-.pontos li {
-  display: flex; align-items: baseline; gap: 14px;
-  padding: 12px 0; border-bottom: 1px solid var(--borda);
-  font-size: 13.5px; color: var(--texto);
-}
-.pontos li:first-child { border-top: 1px solid var(--borda); }
-.pontos li::before {
-  content: attr(data-n);
-  font-family: var(--dpy); font-size: 11px; letter-spacing: .1em;
-  color: var(--acento); flex: 0 0 auto;
-}
-.vitrine .rodape {
-  display: flex; justify-content: space-between; margin: auto 0 0; padding-top: 26px;
-  font-family: var(--dpy); font-size: 9.5px; letter-spacing: .18em;
-  text-transform: uppercase; color: var(--apagado);
-}
+.regua { width: 44px; height: 3px; background: var(--acento-solido); margin: auto 0 22px; }
+.vitrine h1 { font-family: var(--dp); font-size: 46px; line-height: 1.02; letter-spacing: .005em; margin: 0; }
+.vitrine .rodape { display: flex; justify-content: space-between; margin: auto 0 0; padding-top: 28px; font-size: 12px; }
 
-.acesso { background: var(--surface); display: grid; place-items: center; padding: 34px 38px; }
+.acesso { background: var(--surface); display: grid; place-items: center; padding: 32px 36px; }
 .acesso-miolo { width: 100%; max-width: 330px; }
-.acesso h2 {
-  font-family: var(--dpy); font-size: 30px; line-height: 1;
-  text-transform: uppercase; letter-spacing: .01em; margin: 0 0 10px;
-}
-.acesso .conduz { color: var(--suave); font-size: 13.5px; margin: 0 0 30px; }
+.acesso h2 { font-family: var(--dp); font-size: 31px; font-weight: 500; line-height: 1.1; margin: 0 0 8px; }
+.acesso .conduz { color: var(--suave); font-size: 13.5px; margin: 0 0 26px; }
 
-.campo-icone { margin-bottom: 18px; }
-.campo-icone label {
-  display: block; font-family: var(--dpy); font-size: 10px; letter-spacing: .2em;
-  text-transform: uppercase; color: var(--fraco); margin-bottom: 8px;
-}
+.campo-icone { margin-bottom: 16px; }
+.campo-icone label { display: block; font-size: 12.5px; color: var(--suave); margin-bottom: 7px; }
 .campo-icone .entrada {
   display: flex; align-items: center; gap: 11px;
-  background: var(--campo-fundo); border: 1px solid var(--borda);
-  padding: 0 13px; height: 48px; transition: border-color .15s ease;
+  background: var(--campo-fundo); border: 1px solid var(--borda); border-radius: 4px;
+  padding: 0 13px; height: 46px; transition: border-color .16s ease;
 }
 .campo-icone .entrada:focus-within { border-color: var(--acento); }
 .campo-icone .entrada svg {
@@ -543,61 +367,60 @@ a:hover { color: var(--acento-claro); }
 }
 .campo-icone .entrada input {
   flex: 1; min-width: 0; background: none; border: none; outline: none;
-  color: var(--texto); font-size: 14px; font-family: var(--bdy);
+  color: var(--texto); font-size: 13.5px; font-family: var(--ui);
 }
 .campo-icone .entrada input::placeholder { color: var(--apagado); }
 .olho { background: none; border: none; padding: 4px; cursor: pointer; display: grid; place-items: center; }
 .olho:hover svg { stroke: var(--texto); }
 .olho[aria-pressed="true"] svg { stroke: var(--acento); }
 
-.lembrar { display: flex; align-items: center; gap: 9px; font-size: 13px; margin: 6px 0 24px; cursor: pointer; }
-.lembrar input { width: 15px; height: 15px; accent-color: var(--acento); cursor: pointer; }
+.lembrar { display: flex; align-items: center; gap: 9px; font-size: 13px; margin: 4px 0 20px; cursor: pointer; }
+.lembrar input { width: 15px; height: 15px; accent-color: var(--acento-solido); cursor: pointer; }
 
 .botao-acesso {
-  width: 100%; height: 52px; display: flex; align-items: center; justify-content: space-between;
-  padding: 0 20px; cursor: pointer;
-  background: var(--acento-solido); color: #0b0b0d; border: none;
-  font-family: var(--dpy); font-size: 13px; font-weight: 700;
-  letter-spacing: .18em; text-transform: uppercase;
-  transition: background .15s ease;
+  width: 100%; height: 50px; display: flex; align-items: center; justify-content: space-between;
+  padding: 0 20px; cursor: pointer; border-radius: 4px;
+  background: var(--acento-solido); color: #14130f; border: none;
+  font-family: var(--ui); font-size: 15px; font-weight: 600;
+  transition: filter .16s ease;
 }
 .botao-acesso:hover { filter: brightness(1.06); }
 .botao-acesso[disabled] { opacity: .55; cursor: default; }
 .botao-acesso .seta { transition: transform .18s ease; }
 .botao-acesso:hover .seta { transform: translateX(3px); }
 
-.acesso .erro { text-align: center; margin: 0 0 10px; }
-.restrito {
-  margin: 26px 0 0; padding-top: 20px; border-top: 1px solid var(--borda);
-  font-family: var(--dpy); font-size: 9.5px; letter-spacing: .18em;
-  text-transform: uppercase; color: var(--apagado); text-align: center;
+.acesso .erro { text-align: center; margin: 0 0 8px; }
+.rodape-acesso { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 22px; }
+.restrito { font-size: 12.5px; color: var(--fraco); margin: 0; }
+.troca-tema {
+  display: inline-flex; align-items: center; gap: 7px;
+  background: none; border: none; padding: 0; cursor: pointer;
+  font-family: var(--ui); font-size: 12.5px; color: var(--suave);
 }
+.troca-tema:hover { color: var(--texto); }
+.troca-tema svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.6; }
 
 /* ---------- Admin ---------- */
-.painel { background: var(--surface); border: 1px solid var(--borda); padding: 24px; margin-bottom: 20px; }
-.painel h3 {
-  font-family: var(--dpy); font-size: 15px; letter-spacing: .2em;
-  text-transform: uppercase; margin: 0 0 8px;
-}
-.painel .explica { color: var(--fraco); font-size: 13px; margin: 0 0 20px; line-height: 1.55; }
+.painel { background: var(--surface); border: 1px solid var(--borda); border-radius: 5px; padding: 24px; margin-bottom: 18px; }
+.painel h3 { font-family: var(--dp); font-size: 17px; font-weight: 500; margin: 0 0 6px; }
+.painel .explica { color: var(--fraco); font-size: 13px; margin: 0 0 20px; line-height: 1.6; }
 
 .tabela { width: 100%; border-collapse: collapse; font-size: 13.5px; }
 .tabela th {
-  text-align: left; font-family: var(--dpy); font-size: 9.5px; letter-spacing: .2em;
-  text-transform: uppercase; color: var(--fraco); font-weight: 400;
-  padding: 0 12px 12px 0; border-bottom: 1px solid var(--borda);
+  text-align: left; font-size: 12.5px; color: var(--fraco); font-weight: 400;
+  padding: 0 12px 11px 0; border-bottom: 1px solid var(--borda);
 }
 .tabela td { padding: 13px 12px 13px 0; border-bottom: 1px solid var(--borda-fina); vertical-align: middle; }
 .tabela tr:last-child td { border-bottom: none; }
 .tabela .acoes { display: flex; gap: 8px; justify-content: flex-end; }
 .tabela .inativo { color: var(--fraco); }
-.tabela .mono { font-family: var(--mn); font-size: 12px; color: var(--suave); }
+.tabela .mono { font-family: var(--mn); font-size: 12.5px; color: var(--suave); }
 
 .etiqueta {
-  display: inline-block; font-family: var(--dpy); font-size: 9.5px; letter-spacing: .16em;
-  text-transform: uppercase; padding: 4px 9px; border: 1px solid var(--borda); color: var(--fraco);
+  display: inline-block; font-size: 12px; padding: 3px 9px; border-radius: 999px;
+  border: 1px solid var(--borda); color: var(--fraco);
 }
-.etiqueta.admin { color: var(--acento); border-color: rgba(232, 180, 74, .4); }
+.etiqueta.admin { color: var(--acento); border-color: color-mix(in srgb, var(--acento) 45%, transparent); }
 .etiqueta.orfao { color: var(--alerta); border-color: color-mix(in srgb, var(--alerta) 45%, transparent); }
 
 .linha-form { display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end; }
@@ -606,79 +429,63 @@ a:hover { color: var(--acento-claro); }
 .nomes { display: flex; flex-wrap: wrap; gap: 8px; }
 .nomes label {
   display: inline-flex; align-items: center; gap: 8px;
-  border: 1px solid var(--borda); padding: 8px 13px; font-size: 13px; cursor: pointer;
-  transition: border-color .15s ease;
+  border: 1px solid var(--borda); border-radius: 999px;
+  padding: 7px 13px; font-size: 12.5px; cursor: pointer;
+  transition: border-color .16s ease;
 }
 .nomes label:hover { border-color: var(--acento); }
-.nomes input { accent-color: var(--acento); }
+.nomes input { accent-color: var(--acento-solido); }
 .nomes input:checked + span { color: var(--acento); }
+
+/* ---------- O painel do vídeo é sempre escuro ---------- */
+/* Tema claro ou não, ali por baixo tem uma imagem escura: se o texto seguisse o
+   token, viraria preto no branco e sumiria dentro do vídeo. */
+.vitrine, .vitrine h1, .vitrine .marca { color: #f4f2ee; }
+.vitrine .rodape { color: rgba(244, 242, 238, .45); }
 
 /* ---------- Responsivo ---------- */
 @media (max-width: 900px) {
   .pagina-login { padding: 0; }
-  .cartao { grid-template-columns: 1fr; min-height: 100vh; width: 100%; border: none; }
-  .vitrine { min-height: 190px; }
+  .cartao { grid-template-columns: 1fr; min-height: 100vh; width: 100%; border: none; border-radius: 0; }
+  .vitrine { min-height: 180px; }
   .vitrine-conteudo { padding: 24px 22px; }
-  .vitrine h1 { font-size: 30px; margin: 16px 0 0; }
-  .pontos, .vitrine .rodape { display: none; }
-  .acesso { padding: 32px 22px 44px; align-items: start; }
+  .vitrine h1 { font-size: 30px; }
+  .regua { margin: auto 0 16px; }
+  .vitrine .rodape { display: none; }
+  .acesso { padding: 30px 22px 42px; align-items: start; }
 }
 
 @media (max-width: 760px) {
-  .topo { padding: 0 18px; height: 60px; }
-  .topo .sub, .topo .fio-vertical:first-of-type { display: none; }
+  .topo { padding: 0 18px; height: 58px; }
+  .eu { gap: 14px; }
   .eu-nome, .eu-papel { display: none; }
-  .conteudo { padding: 32px 18px 48px; }
-  .cabecalho-evento { flex-direction: column; align-items: flex-start; gap: 18px; }
-  .cabecalho-evento .ev-nome .sigla { font-size: 38px; }
-  .cabecalho-evento .metricas { margin-left: 0; gap: 18px; }
-  .cabecalho-evento .metrica { text-align: left; }
-  .cabecalho-evento .metrica + .metrica { padding-left: 18px; }
-  .faixa-eu { flex-wrap: wrap; gap: 16px; }
-  .faixa-eu .espaco { display: none; }
+  .conteudo { padding: 26px 18px 40px; }
+  .grade, .esqueleto { grid-template-columns: 1fr; }
+  .card-evento { height: 200px; }
+  .card-evento .miolo { padding: 20px 20px 18px; }
+  .ev-nome .sigla { font-size: 36px; }
+  .ev-nome .num { font-size: 22px; }
+  .metrica b { font-size: 21px; }
+  .faixa-evento { height: auto; }
+  .faixa-evento .miolo { flex-direction: column; align-items: flex-start; gap: 18px; padding: 22px 20px; }
+  .faixa-evento .metricas { padding-right: 0; gap: 16px; }
+  .faixa-evento .ev-nome .sigla { font-size: 40px; }
+  .faixa-evento .ev-nome .num { font-size: 24px; }
+  .faixa-evento .metrica b { font-size: 22px; }
+  .faixa-evento .elenco { display: none; }
+  /* O quadro vira lista: uma etapa por vez, escolhida nos chips. */
+  .chips { display: flex; }
   .kanban { grid-template-columns: 1fr; }
-  .coluna { min-height: 0; }
+  .coluna { display: none; }
+  .coluna.aberta { display: block; }
+  .coluna h4 { display: none; }
   .tabela, .tabela tbody, .tabela tr, .tabela td { display: block; width: 100%; }
   .tabela thead { display: none; }
-  .tabela tr { border-bottom: 1px solid var(--borda); padding: 14px 0; }
+  .tabela tr { border-bottom: 1px solid var(--borda); padding: 13px 0; }
   .tabela td { border: none; padding: 3px 0; }
   .tabela .acoes { justify-content: flex-start; margin-top: 12px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
-}
-
-/* ---------- Ajustes do tema claro ---------- */
-/* O painel do vídeo é sempre uma imagem escura, tema claro ou não. O texto por
-   cima dele fica claro nos dois — se seguisse o token, virava preto no branco
-   e sumia dentro do vídeo. */
-.vitrine, .vitrine h1 { color: #f4f2ee; }
-.vitrine .sub { color: rgba(244, 242, 238, .5); }
-.vitrine .produto { color: #e8b44a; }
-.pontos li { color: #f4f2ee; border-color: rgba(255, 255, 255, .16); }
-.pontos li:first-child { border-top-color: rgba(255, 255, 255, .16); }
-.pontos li::before { color: #e8b44a; }
-.vitrine .rodape { color: rgba(244, 242, 238, .45); }
-/* Mesma lógica: a pastilha "+N" fica sobre foto. */
-.card-evento .mais { color: #f4f2ee; }
-
-/* Os véus escurecem para o texto claro aparecer sobre a foto. No tema claro o
-   texto é escuro, então eles precisam clarear — senão o nome e as métricas
-   ficam pretos sobre um fundo preto. */
-:root[data-tema="claro"] .card-evento::after {
-  background:
-    linear-gradient(0deg, rgba(255, 255, 255, .97) 16%, rgba(255, 255, 255, .62) 30%, rgba(255, 255, 255, 0) 48%),
-    linear-gradient(101deg,
-      var(--surface) 30%, rgba(255, 255, 255, .8) 42%, rgba(255, 255, 255, .25) 56%, rgba(255, 255, 255, 0) 68%);
-}
-:root[data-tema="claro"] .instrutor::after {
-  background:
-    linear-gradient(0deg, rgba(255, 255, 255, .96) 6%, rgba(255, 255, 255, .62) 22%, rgba(255, 255, 255, 0) 42%),
-    linear-gradient(101deg,
-      var(--surface) 32%, rgba(255, 255, 255, .72) 46%, rgba(255, 255, 255, .22) 62%, rgba(255, 255, 255, 0) 76%);
-}
-/* O brilho âmbar do topo pesa demais sobre fundo claro. */
-:root[data-tema="claro"] .conteudo::before {
-  background: radial-gradient(900px 260px at 50% -110px, rgba(232, 180, 74, .16), transparent 70%);
 }
