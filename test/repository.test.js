@@ -8,7 +8,6 @@ function fakeDeps() {
   return {
     runQuery: async (sql) => {
       if (sql.includes('presencial_metricas')) return palestrasExemplo;
-      if (sql.includes('COUNTIF')) return [{ total: 14, descartados: 2 }];
       return leadsExemplo;
     },
   };

@@ -36,5 +36,10 @@ export const leadsExemplo = [
   { Nome: 'Lucas Gomes', Email: 'lucas@ex.com', Telefone: '5521990000012', PipelineId: '3', PipelineName: 'Presencial Uberlândia', EtapaId: 'HAGRgtPULdixanPx2VRs', EtapaName: 'EM CONTATO', Conexao: null },
   { Nome: 'Patrícia Alves', Email: 'patricia@ex.com', Telefone: '5521990000013', PipelineId: '3', PipelineName: 'Presencial Uberlândia', EtapaId: 'HAGRgtPULdixanPx2VRs', EtapaName: 'EM CONTATO', Conexao: null },
   { Nome: 'Roberto Farias', Email: 'roberto@ex.com', Telefone: '5521990000014', PipelineId: '3', PipelineName: 'Presencial Uberlândia', EtapaId: '91K3CxoUm290DYdqGYHU', EtapaName: 'JÁ É MEMBRO', Conexao: null },
+
+  // Como a origem manda de verdade: evento e etapa gravados com a PALAVRA
+  // "null". Estes dois precisam ser descartados e contados.
+  { Nome: 'Sem evento 1', Email: null, Telefone: '5511900000001', PipelineId: null, PipelineName: 'null', EtapaId: null, EtapaName: 'null', Conexao: 'null' },
+  { Nome: 'Sem evento 2', Email: null, Telefone: '5511900000002', PipelineId: null, PipelineName: 'null', EtapaId: null, EtapaName: 'null', Conexao: 'null' },
 ];
 

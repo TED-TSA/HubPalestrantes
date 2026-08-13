@@ -1,11 +1,11 @@
-import { SQL_LEADS, SQL_LEADS_DESCARTADOS, SQL_PALESTRAS } from './queries.js';
+import { SQL_LEADS, SQL_PALESTRAS } from './queries.js';
 import { leadsExemplo, palestrasExemplo } from './exemplo.js';
 import { cached } from './cache.js';
 import { config } from '../../config.js';
 import { enriquecerLeads, resumoEvento } from '../domain/metricas.js';
 import { montarColunas } from '../domain/kanban.js';
 import { montarPalestra, cidadeDoPipeline, indexarPalestrasPorCidade } from '../domain/palestra.js';
-import { slug } from '../domain/texto.js';
+import { slug, ehVazio } from '../domain/texto.js';
 
 async function buscar(deps) {
   if (config.usarExemplo) {
@@ -15,15 +15,18 @@ async function buscar(deps) {
       descartados: 0,
     };
   }
-  const [palestrasRaw, leadsRaw, contagem] = await Promise.all([
+  const [palestrasRaw, leadsRaw] = await Promise.all([
     deps.runQuery(SQL_PALESTRAS),
     deps.runQuery(SQL_LEADS),
-    deps.runQuery(SQL_LEADS_DESCARTADOS),
   ]);
+  // Lead sem evento ou sem etapa não tem onde aparecer. O número dos descartados
+  // vai para a tela da gestão, para o problema não passar despercebido.
+  const brutos = leadsRaw ?? [];
+  const aproveitaveis = brutos.filter((l) => !ehVazio(l.PipelineName) && !ehVazio(l.EtapaName));
   return {
     palestras: palestrasRaw.map(montarPalestra),
-    leads: enriquecerLeads(leadsRaw),
-    descartados: Number(contagem?.[0]?.descartados ?? 0),
+    leads: enriquecerLeads(aproveitaveis),
+    descartados: brutos.length - aproveitaveis.length,
   };
 }
 
