@@ -108,6 +108,13 @@ function iniciais(nome) {
   return String(nome ?? '').split(/\s+/).slice(0, 2).map((p) => p[0]?.toUpperCase() ?? '').join('');
 }
 
+// As etapas chegam gritando ("EM CONTATO", "JÁ É ALDEIA"). O desenho é todo em
+// caixa baixa, e caixa alta no meio dele vira ruído.
+function frase(s) {
+  const t = String(s ?? '').trim();
+  return t ? t[0].toUpperCase() + t.slice(1).toLowerCase() : t;
+}
+
 /* ---------------- Fotos cortadas na diagonal ---------------- */
 
 // Quanto a aresta anda da direita para a esquerda, em % da área de foto.
@@ -322,12 +329,12 @@ function renderKanban() {
 
   document.getElementById('chips').innerHTML = d.colunas.map((c, i) =>
     `<button type="button" class="${i === etapaAberta ? 'on' : ''}" data-etapa="${i}">
-      ${esc(c.etapaName)} ${porColuna[i].length}</button>`).join('');
+      ${esc(frase(c.etapaName))} ${porColuna[i].length}</button>`).join('');
 
   document.getElementById('kanban').innerHTML = d.colunas.map((c, i) => `
     <div class="coluna${i === etapaAberta ? ' aberta' : ''}">
       <h4>
-        <span>${esc(c.etapaName)}</span>
+        <span>${esc(frase(c.etapaName))}</span>
         <span class="espaco"></span>
         <span class="conta">${porColuna[i].length}</span>
       </h4>
@@ -404,7 +411,6 @@ async function telaDetalhe(slug) {
         <div class="grade-instrutores">
           ${d.instrutores.map((ins) => `
             <div class="instrutor" data-slug="${esc(ins.slug)}">
-              ${elenco([ins], 1)}
               <div class="miolo">
                 <span class="nome">${esc(ins.instrutor)}</span>
                 ${metricasLeads(ins, { conversao: false })}

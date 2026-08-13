@@ -217,29 +217,18 @@ a:hover { color: var(--acento-claro); }
 .faixa-evento .metrica { font-size: 14px; }
 .faixa-evento .metrica b { font-size: 31px; }
 
-/* Instrutores do evento (só a gestão vê mais de um). */
-.grade-instrutores { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 14px; }
+/* Instrutores do evento (só a gestão vê mais de um). Sem foto: quem está no
+   palco já aparece com a cara na faixa acima, e repetir o mesmo rosto dois
+   palmos abaixo era ruído. Aqui vale o nome, o número e o clique que filtra. */
+.grade-instrutores { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
 .instrutor {
-  position: relative; height: 206px; overflow: hidden; cursor: pointer;
+  position: relative; cursor: pointer;
   background: var(--surface); border: 1px solid var(--borda); border-radius: 5px;
-  transition: border-color .16s ease;
+  transition: border-color .16s ease, background .16s ease;
 }
-.instrutor:hover { border-color: var(--borda-viva); }
+.instrutor:hover { border-color: var(--borda-viva); background: var(--surface-alta); }
 .instrutor.ativo { border-color: var(--acento-solido); }
-.instrutor .elenco { width: 62%; }
-.instrutor .faixa .ini { font-size: 28px; }
-/* O card do instrutor é estreito e os números passam por baixo da foto. Um véu
-   no pé garante que "3 leads 0 vendas" continue legível. */
-.instrutor .veu {
-  background:
-    linear-gradient(0deg, color-mix(in srgb, var(--surface) 92%, transparent) 0%, transparent 34%),
-    linear-gradient(90deg,
-      var(--surface) 0%,
-      color-mix(in srgb, var(--surface) 90%, transparent) 13%,
-      color-mix(in srgb, var(--surface) 16%, transparent) 29%,
-      transparent 40%);
-}
-.instrutor .miolo { padding: 18px; }
+.instrutor .miolo { padding: 16px 18px; gap: 12px; }
 .instrutor .nome {
   font-family: var(--dp); font-size: 21px; line-height: 1;
   letter-spacing: .02em; text-transform: uppercase;
@@ -259,7 +248,17 @@ a:hover { color: var(--acento-claro); }
 }
 .coluna h4 .espaco { flex: 1; }
 .coluna h4 .conta { font-family: var(--ui); font-weight: 600; font-size: 18px; color: var(--suave); }
-.coluna-leads { display: flex; flex-direction: column; padding-top: 4px; }
+/* Uma etapa concentra quase tudo (55 de 58 leads em "Em contato"), e sem teto a
+   coluna corre página abaixo enquanto as vizinhas ficam vazias. Com o teto, o
+   quadro volta a ser um quadro. */
+.coluna-leads {
+  display: flex; flex-direction: column; padding-top: 4px;
+  max-height: 62vh; overflow-y: auto;
+  scrollbar-width: thin; scrollbar-color: var(--borda-viva) transparent;
+}
+.coluna-leads::-webkit-scrollbar { width: 8px; }
+.coluna-leads::-webkit-scrollbar-track { background: transparent; }
+.coluna-leads::-webkit-scrollbar-thumb { background: var(--borda-viva); border-radius: 999px; }
 .coluna-vazia { font-size: 13px; color: var(--apagado); padding: 15px 3px; margin: 0; }
 
 .card-lead { padding: 15px 3px; border-bottom: 1px solid var(--borda); transition: background .16s ease; }
