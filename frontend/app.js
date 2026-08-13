@@ -85,11 +85,14 @@ function metricasPalestra(p) {
   </div>`;
 }
 
-// Do recorte de um instrutor: só o que ele tem para trabalhar.
+// Do recorte de um instrutor: só o que ele tem para trabalhar. O verbo é
+// "compraram", não "vendas": este número conta leads do funil que casaram com
+// uma venda no Pipedrive, e é sempre menor que as vendas da palestra — quem
+// comprou sem passar pelo funil não aparece aqui.
 function metricasLeads(r, { conversao = true } = {}) {
   return `<div class="metricas">
     <span class="metrica"><b>${r.total}</b> ${r.total === 1 ? 'lead' : 'leads'}</span>
-    <span class="metrica"><b>${r.vendas}</b> ${r.vendas === 1 ? 'venda' : 'vendas'}</span>
+    <span class="metrica"><b>${r.vendas}</b> ${r.vendas === 1 ? 'comprou' : 'compraram'}</span>
     ${conversao ? `<span class="metrica conv"><b>${pct(r.taxaConversao)}</b> conversão</span>` : ''}
   </div>`;
 }
@@ -407,7 +410,8 @@ async function telaDetalhe(slug) {
 
     ${admin ? `
       <div style="margin-top:30px">
-        ${tituloLinha('Instrutores no palco', podeFiltrar ? 'clique para filtrar o quadro' : '')}
+        ${tituloLinha('Instrutores no palco',
+          `números do funil de leads${podeFiltrar ? ' · clique para filtrar o quadro' : ''}`)}
         <div class="grade-instrutores">
           ${d.instrutores.map((ins) => `
             <div class="instrutor" data-slug="${esc(ins.slug)}">

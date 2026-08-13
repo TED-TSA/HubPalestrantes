@@ -200,8 +200,10 @@ a:hover { color: var(--acento-claro); }
 .voltar { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: var(--suave); }
 .voltar:hover { color: var(--texto); }
 
+/* min-height, não height: nome de cidade longo pode pedir mais uma linha, e
+   altura travada cortaria o texto. */
 .faixa-evento {
-  position: relative; margin-top: 18px; height: 150px; overflow: hidden;
+  position: relative; margin-top: 18px; min-height: 150px; overflow: hidden;
   background: var(--surface); border: 1px solid var(--borda); border-radius: 5px;
 }
 .faixa-evento .elenco { width: 26%; }
@@ -212,6 +214,13 @@ a:hover { color: var(--acento-claro); }
 }
 .faixa-evento .ev-nome .sigla { font-size: 54px; }
 .faixa-evento .ev-nome .num { font-size: 32px; }
+/* Estas precisam vir aqui, e não só nas classes de porte: o seletor acima é
+   mais específico e engoliria o ajuste de nome longo justamente na faixa. */
+.faixa-evento .ev-nome.medio .sigla { font-size: 40px; }
+.faixa-evento .ev-nome.medio .num { font-size: 25px; }
+.faixa-evento .ev-nome.longo .sigla { font-size: 31px; }
+.faixa-evento .ev-nome.longo .num { font-size: 21px; }
+.faixa-evento .miolo { padding-top: 18px; padding-bottom: 18px; }
 .faixa-evento .ev-quem { margin-top: 12px; }
 .faixa-evento .metricas { gap: 24px; padding-right: 20%; }
 .faixa-evento .metrica { font-size: 14px; }
