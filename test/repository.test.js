@@ -2,15 +2,14 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { listarEventos, detalheEvento, saude, nomesDeConexao } from '../server/data/repository.js';
 import { limparCache } from '../server/data/cache.js';
-import { leadsExemplo, vendasExemplo, palestrasExemplo } from '../server/data/exemplo.js';
+import { leadsExemplo, palestrasExemplo } from '../server/data/exemplo.js';
 
 function fakeDeps() {
   return {
     runQuery: async (sql) => {
       if (sql.includes('presencial_metricas')) return palestrasExemplo;
       if (sql.includes('COUNTIF')) return [{ total: 14, descartados: 2 }];
-      if (sql.includes('info_leads')) return leadsExemplo;
-      return vendasExemplo;
+      return leadsExemplo;
     },
   };
 }

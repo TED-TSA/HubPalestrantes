@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { criarApp } from '../server/app.js';
 import { limparCache } from '../server/data/cache.js';
-import { leadsExemplo, vendasExemplo, palestrasExemplo } from '../server/data/exemplo.js';
+import { leadsExemplo, palestrasExemplo } from '../server/data/exemplo.js';
 import { abrirBanco } from '../server/data/db.js';
 import * as usuarios from '../server/data/usuarios.js';
 import { zerarTudo } from '../server/auth/limite.js';
@@ -23,8 +23,7 @@ async function subir() {
     runQuery: async (sql) => {
       if (sql.includes('presencial_metricas')) return palestrasExemplo;
       if (sql.includes('COUNTIF')) return [{ total: 14, descartados: 2 }];
-      if (sql.includes('info_leads')) return leadsExemplo;
-      return vendasExemplo;
+      return leadsExemplo;
     },
   };
   const srv = await new Promise((resolve) => {

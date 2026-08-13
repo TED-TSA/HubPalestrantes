@@ -1,8 +1,7 @@
-import { SQL_LEADS, SQL_LEADS_DESCARTADOS, SQL_PALESTRAS, SQL_VENDAS } from './queries.js';
-import { leadsExemplo, vendasExemplo, palestrasExemplo } from './exemplo.js';
+import { SQL_LEADS, SQL_LEADS_DESCARTADOS, SQL_PALESTRAS } from './queries.js';
+import { leadsExemplo, palestrasExemplo } from './exemplo.js';
 import { cached } from './cache.js';
 import { config } from '../../config.js';
-import { indexarVendas } from '../domain/vendas.js';
 import { enriquecerLeads, resumoEvento } from '../domain/metricas.js';
 import { montarColunas } from '../domain/kanban.js';
 import { montarPalestra, cidadeDoPipeline, indexarPalestrasPorCidade } from '../domain/palestra.js';
@@ -12,19 +11,18 @@ async function buscar(deps) {
   if (config.usarExemplo) {
     return {
       palestras: palestrasExemplo.map(montarPalestra),
-      leads: enriquecerLeads(leadsExemplo, indexarVendas(vendasExemplo)),
+      leads: enriquecerLeads(leadsExemplo),
       descartados: 0,
     };
   }
-  const [palestrasRaw, leadsRaw, vendasRaw, contagem] = await Promise.all([
+  const [palestrasRaw, leadsRaw, contagem] = await Promise.all([
     deps.runQuery(SQL_PALESTRAS),
     deps.runQuery(SQL_LEADS),
-    deps.runQuery(SQL_VENDAS),
     deps.runQuery(SQL_LEADS_DESCARTADOS),
   ]);
   return {
     palestras: palestrasRaw.map(montarPalestra),
-    leads: enriquecerLeads(leadsRaw, indexarVendas(vendasRaw)),
+    leads: enriquecerLeads(leadsRaw),
     descartados: Number(contagem?.[0]?.descartados ?? 0),
   };
 }

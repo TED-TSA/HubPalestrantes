@@ -85,15 +85,12 @@ function metricasPalestra(p) {
   </div>`;
 }
 
-// Do recorte de um instrutor: só o que ele tem para trabalhar. O verbo é
-// "compraram", não "vendas": este número conta leads do funil que casaram com
-// uma venda no Pipedrive, e é sempre menor que as vendas da palestra — quem
-// comprou sem passar pelo funil não aparece aqui.
-function metricasLeads(r, { conversao = true } = {}) {
+// Do recorte de um instrutor: quantos leads ele tem para trabalhar. Venda não
+// entra aqui — esse número vem da base da palestra, e ter os dois com o mesmo
+// nome na mesma tela era o que confundia.
+function metricasLeads(r) {
   return `<div class="metricas">
     <span class="metrica"><b>${r.total}</b> ${r.total === 1 ? 'lead' : 'leads'}</span>
-    <span class="metrica"><b>${r.vendas}</b> ${r.vendas === 1 ? 'comprou' : 'compraram'}</span>
-    ${conversao ? `<span class="metrica conv"><b>${pct(r.taxaConversao)}</b> conversão</span>` : ''}
   </div>`;
 }
 
@@ -105,7 +102,6 @@ function tituloLinha(texto, nota, extra = '') {
   </div>`;
 }
 
-const legendaVenda = '<span class="legenda"><span class="ponto"></span><span>comprou</span></span>';
 
 function iniciais(nome) {
   return String(nome ?? '').split(/\s+/).slice(0, 2).map((p) => p[0]?.toUpperCase() ?? '').join('');
@@ -295,19 +291,16 @@ async function avisoDeSaude() {
 
 /* ---------------- Evento ---------------- */
 
+// O que o lead informa é onde a pessoa está no atendimento — e isso já está na
+// coluna em que o card aparece.
 function cardLead(l) {
-  const detalhe = [l.curso, l.dataVenda, l.vendedor].filter(Boolean).join(' · ');
   return `<div class="card-lead">
     <div class="topo-lead">
       <span class="ln">${esc(l.nome)}</span>
-      ${ehAdmin() ? `<span class="de">${esc(l.instrutor)}</span>` : ''}
+      ${ehAdmin() && l.instrutorConhecido ? `<span class="de">${esc(l.instrutor)}</span>` : ''}
     </div>
     <div class="tel">${l.telefone ? esc(mascararTelefone(l.telefone)) : 'sem telefone'}</div>
     ${l.email ? `<div class="email">${esc(mascararEmail(l.email))}</div>` : ''}
-    ${l.vendeu ? `<div class="venda" title="${esc(detalhe)}">
-      <span class="ponto"></span>
-      <span class="curso">${esc(l.curso ?? 'Venda registrada')}</span>
-    </div>` : ''}
   </div>`;
 }
 
@@ -423,9 +416,9 @@ async function telaDetalhe(slug) {
         </div>
       </div>
       <div style="margin-top:32px">
-        ${tituloLinha('Quadro', 'todos os instrutores', legendaVenda)}
+        ${tituloLinha('Quadro', 'onde cada lead está no atendimento')}
       </div>
-    ` : `<div style="margin-top:30px">${tituloLinha('Seus leads', '', legendaVenda)}</div>`}
+    ` : `<div style="margin-top:30px">${tituloLinha('Seus leads', 'onde cada um está no atendimento')}</div>`}
 
     <div id="chips" class="chips"></div>
     <div id="kanban" class="kanban"></div>`;

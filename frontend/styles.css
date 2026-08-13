@@ -28,7 +28,6 @@
      O --acento acima é o de texto e traço, e no tema claro precisa escurecer
      para ter contraste sobre branco. */
   --acento-solido: #e8b44a;
-  --venda: #3fd69b;
   --alerta: #ff9b8a;
   --campo-fundo: rgba(255, 255, 255, .03);
 
@@ -54,7 +53,6 @@
      escuro passa de 4,5:1 e mantém a mesma família de cor. */
   --acento: #96660a;
   --acento-claro: #7d5405;
-  --venda: #0a7a52;
   --alerta: #b3311c;
   --campo-fundo: rgba(0, 0, 0, .025);
 }
@@ -118,9 +116,6 @@ a:hover { color: var(--acento-claro); }
 .titulo-nota { font-size: 13px; color: var(--fraco); }
 .titulo-linha .espaco { flex: 1; }
 
-.legenda { display: flex; align-items: center; gap: 7px; }
-.legenda .ponto { width: 7px; height: 7px; border-radius: 50%; background: var(--venda); }
-.legenda span { font-size: 12.5px; color: var(--suave); }
 
 /* ---------- Métricas em linha ---------- */
 /* Número grande colado no rótulo pequeno, na mesma linha de base. */
@@ -277,12 +272,6 @@ a:hover { color: var(--acento-claro); }
 .card-lead .de { font-size: 12.5px; color: var(--fraco); white-space: nowrap; }
 .card-lead .tel { font-family: var(--mn); font-size: 13.5px; letter-spacing: .01em; color: var(--texto); margin-top: 10px; }
 .card-lead .email { font-family: var(--mn); font-size: 12px; color: var(--fraco); margin-top: 3px; }
-.card-lead .venda {
-  display: flex; align-items: center; gap: 8px;
-  margin-top: 13px; padding-top: 12px; border-top: 1px solid var(--borda);
-}
-.card-lead .venda .ponto { width: 7px; height: 7px; border-radius: 50%; background: var(--venda); flex: 0 0 auto; }
-.card-lead .venda .curso { font-size: 13px; color: var(--venda); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* Chips de etapa: no celular o quadro vira lista, com a etapa escolhida no topo,
    porque quatro colunas lado a lado não cabem. */

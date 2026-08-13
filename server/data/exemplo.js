@@ -38,9 +38,3 @@ export const leadsExemplo = [
   { Nome: 'Roberto Farias', Email: 'roberto@ex.com', Telefone: '5521990000014', PipelineId: '3', PipelineName: 'Presencial Uberlândia', EtapaId: '91K3CxoUm290DYdqGYHU', EtapaName: 'JÁ É MEMBRO', Conexao: null },
 ];
 
-export const vendasExemplo = [
-  { person_phone: '5549998033100', person_email: 'herika@ex.com', curso_comprado: 'Mentoria Ouro', valor_pago: 4970, data_venda: '2026-08-05', Equipe: 'Bruno Novak' },
-  { person_phone: '5511990000003', person_email: 'joaop@ex.com', curso_comprado: 'Curso Base', valor_pago: 1997, data_venda: '2026-08-06', Equipe: 'Bruno Novak' },
-  { person_phone: '5521990000010', person_email: 'carlos@ex.com', curso_comprado: 'Mentoria Ouro', valor_pago: 4970, data_venda: '2026-07-30', Equipe: 'Ana Paula' },
-  { person_phone: '5521990000012', person_email: 'lucas@ex.com', curso_comprado: 'Curso Base', valor_pago: 1997, data_venda: '2026-07-28', Equipe: 'Lucas Cristiano' },
-];

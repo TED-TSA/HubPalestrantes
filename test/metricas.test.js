@@ -1,37 +1,32 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { enriquecerLeads, resumoEvento, resumoInstrutores } from '../server/domain/metricas.js';
-import { indexarVendas } from '../server/domain/vendas.js';
+import { enriquecerLeads, resumoEvento } from '../server/domain/metricas.js';
 
 const raw = [
-  { Nome: 'A', Telefone: '5549998033100', Email: 'a@x.com', PipelineName: 'CXJ 3006', EtapaId: '1', EtapaName: 'Novo', Conexao: 'Presencial Elidiano' },
-  { Nome: 'B', Telefone: '551190000000', Email: 'b@x.com', PipelineName: 'CXJ 3006', EtapaId: '2', EtapaName: 'Em contato', Conexao: 'Presencial Elidiano' },
-  { Nome: 'C', Telefone: '551190000001', Email: 'c@x.com', PipelineName: 'CXJ 3006', EtapaId: '2', EtapaName: 'Em contato', Conexao: 'Online Ana' },
+  { Nome: 'A', Telefone: '5549998033100', Email: 'a@x.com', PipelineName: 'Presencial Sorocaba', EtapaId: 'W53M', EtapaName: 'EM CONTATO', Conexao: 'Presencial Elizier' },
+  { Nome: 'B', Telefone: '551190000000', Email: 'b@x.com', PipelineName: 'Presencial Sorocaba', EtapaId: 'U5v2', EtapaName: 'JÁ É ALDEIA', Conexao: null },
 ];
-const vendas = [{ person_phone: '5549998033100', person_email: 'a@x.com', curso_comprado: 'Curso A', valor_pago: 697, data_venda: '2026-08-01', Equipe: 'Bruno' }];
 
-test('enriquece leads com instrutor e venda', () => {
-  const leads = enriquecerLeads(raw, indexarVendas(vendas));
-  assert.equal(leads[0].instrutor, 'Elidiano');
-  assert.equal(leads[0].instrutorSlug, 'elidiano');
-  assert.equal(leads[0].vendeu, true);
-  assert.equal(leads[0].curso, 'Curso A');
-  assert.equal(leads[1].vendeu, false);
+test('enriquece o lead com a etapa e o instrutor da Conexão', () => {
+  const leads = enriquecerLeads(raw);
+  assert.equal(leads[0].instrutor, 'Elizier');
+  assert.equal(leads[0].instrutorSlug, 'elizier');
+  assert.equal(leads[0].instrutorConhecido, true);
+  assert.equal(leads[0].etapaName, 'EM CONTATO');
 });
 
-test('resumoEvento conta total, vendas e valor', () => {
-  const leads = enriquecerLeads(raw, indexarVendas(vendas));
-  const r = resumoEvento(leads);
-  assert.equal(r.total, 3);
-  assert.equal(r.vendas, 1);
-  assert.equal(r.valorTotal, 697);
-  assert.equal(r.atendidos, undefined, 'atendidos dependia de EtapaId numérico');
+test('lead sem Conexão fica marcado como sem dono individual', () => {
+  const leads = enriquecerLeads(raw);
+  assert.equal(leads[1].instrutorConhecido, false);
 });
 
-test('resumoInstrutores agrupa e ordena por valor', () => {
-  const leads = enriquecerLeads(raw, indexarVendas(vendas));
-  const ins = resumoInstrutores(leads);
-  assert.equal(ins[0].instrutor, 'Elidiano');
-  assert.equal(ins[0].vendas, 1);
-  assert.equal(ins.length, 2);
+test('o lead não carrega mais venda: isso vem da base da palestra', () => {
+  const l = enriquecerLeads(raw)[0];
+  assert.equal(l.vendeu, undefined);
+  assert.equal(l.curso, undefined);
+  assert.equal(l.valorPago, undefined);
+});
+
+test('resumoEvento conta os leads', () => {
+  assert.deepEqual(resumoEvento(enriquecerLeads(raw)), { total: 2 });
 });
