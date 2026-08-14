@@ -78,12 +78,10 @@ a:hover { color: var(--acento-claro); }
   background: var(--bg); position: sticky; top: 0; z-index: 10;
 }
 .marca-bloco { display: flex; align-items: center; gap: 13px; }
-.selo-ts {
-  width: 25px; height: 25px; flex: 0 0 auto;
-  background: var(--acento-solido); color: #14130f;
-  font-family: var(--ui); font-size: 11px; font-weight: 700;
-  display: flex; align-items: center; justify-content: center;
-}
+/* A logo vem em branco. Como currentColor, ela acompanha o tema — no claro, o
+   branco sumiria no fundo. No painel do vídeo ela é fixada em claro, porque ali
+   o fundo é sempre escuro (ver o bloco no fim do arquivo). */
+.selo-ts { width: 26px; height: 26px; flex: 0 0 auto; color: var(--texto); display: block; }
 .marca { font-family: var(--dp); font-size: 17px; letter-spacing: .005em; color: var(--texto); }
 .marca:hover { color: var(--texto); }
 .fio-vertical { width: 1px; height: 16px; background: var(--borda); flex: 0 0 auto; }
@@ -453,7 +451,7 @@ a:hover { color: var(--acento-claro); }
 /* ---------- O painel do vídeo é sempre escuro ---------- */
 /* Tema claro ou não, ali por baixo tem uma imagem escura: se o texto seguisse o
    token, viraria preto no branco e sumiria dentro do vídeo. */
-.vitrine, .vitrine h1, .vitrine .marca { color: #f4f2ee; }
+.vitrine, .vitrine h1, .vitrine .marca, .vitrine .selo-ts { color: #f4f2ee; }
 .vitrine .rodape { color: rgba(244, 242, 238, .45); }
 
 /* ---------- Responsivo ---------- */
