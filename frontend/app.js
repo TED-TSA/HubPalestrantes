@@ -1,8 +1,16 @@
+import { dataCurta } from './datas.js';
+import { filtrarEventos, opcoesDeFiltro, SEM_FILTRO } from './filtros.js';
+
 const app = document.getElementById('app');
 const menu = document.getElementById('menu');
 
 let eu = null;
-let estado = { detalhe: null, filtroInstrutor: null, etapaAberta: 0 };
+let estado = { detalhe: null, etapaAberta: 0, buscaLead: '' };
+
+// Fora do `estado`: a tela de detalhe reescreve aquele objeto inteiro, e a
+// escolha de filtro precisa sobreviver a entrar num evento e voltar.
+let eventosDaHome = [];
+let filtroDaHome = { ...SEM_FILTRO };
 
 const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => (
   { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
@@ -37,24 +45,17 @@ const ehAdmin = () => eu?.papel === 'admin';
 
 /* ---------------- Peças de texto ---------------- */
 
-const MESES = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
-
-// "2026-08-10" → "10 ago". Montado na mão porque `new Date` interpretaria a
-// data como UTC e mostraria o dia anterior no fuso do Brasil.
-function dataCurta(iso) {
-  const m = String(iso ?? '').match(/^(\d{4})-(\d{2})-(\d{2})$/);
-  return m ? `${Number(m[3])} ${MESES[Number(m[2]) - 1]}` : '';
-}
-
 // A palestra é identificada pela cidade; a data é o que separa duas visitas à
 // mesma cidade. Os dois pesos do desenho caem certinho nisso.
 //
-// O desenho foi feito com "CXJ" e "SP" em mente. Cidade de verdade é longa
-// ("Balneário Camboriú", "São José dos Campos") e a 46px atropela a foto, então
-// o corpo cede conforme o nome cresce.
-function tituloEvento(ev) {
+// `ajustarAoNome` encolhe o corpo conforme o nome cresce — o desenho foi feito
+// com "CXJ" e "SP" em mente, e "Balneário Camboriú" a 54px atropela a foto. Vale
+// na faixa do evento, que tem largura inteira. No card da home não vale: com
+// três cards por linha o tamanho precisa ser o mesmo em todos, senão a grade
+// vira uma serra de corpos diferentes.
+function tituloEvento(ev, { ajustarAoNome = true } = {}) {
   const n = String(ev.cidade ?? '').length;
-  const porte = n <= 9 ? '' : n <= 15 ? ' medio' : ' longo';
+  const porte = !ajustarAoNome ? '' : n <= 9 ? '' : n <= 15 ? ' medio' : ' longo';
   return `<div class="ev-nome${porte}">
     <span class="sigla">${esc(ev.cidade)}</span>
     <span class="num">${esc(dataCurta(ev.data))}</span>
@@ -74,31 +75,23 @@ function quemNoPalco(instrutores) {
   return `${frase} no palco`;
 }
 
-// Da palestra: quem apareceu na sala e quanto disso virou venda. O número de
-// leads fica junto porque é o trabalho que sobra para o instrutor.
-function metricasPalestra(p) {
+// Da palestra: quem apareceu na sala e quanto disso virou venda. Na home é a
+// única métrica de leads da tela, mas no detalhe do evento o total já tem um
+// bloco próprio ao lado de Presença/Vendas — repetir aqui viraria a mesma
+// contagem em dois lugares, então `comLeads` desliga essa métrica ali.
+function metricasPalestra(p, { comLeads = true } = {}) {
   return `<div class="metricas">
     <span class="metrica"><b>${p.presentes}</b> presentes</span>
     <span class="metrica"><b>${p.vendas}</b> ${p.vendas === 1 ? 'venda' : 'vendas'}</span>
     <span class="metrica conv"><b>${pct(p.conversao)}</b> conversão</span>
-    <span class="metrica"><b>${p.leads}</b> ${p.leads === 1 ? 'lead' : 'leads'}</span>
+    ${comLeads ? `<span class="metrica"><b>${p.leads}</b> ${p.leads === 1 ? 'lead' : 'leads'}</span>` : ''}
   </div>`;
 }
 
-// Do recorte de um instrutor: quantos leads ele tem para trabalhar. Venda não
-// entra aqui — esse número vem da base da palestra, e ter os dois com o mesmo
-// nome na mesma tela era o que confundia.
-function metricasLeads(r) {
-  return `<div class="metricas">
-    <span class="metrica"><b>${r.total}</b> ${r.total === 1 ? 'lead' : 'leads'}</span>
-  </div>`;
-}
-
-function tituloLinha(texto, nota, extra = '') {
+function tituloLinha(texto, nota) {
   return `<div class="titulo-linha">
     <h2 class="titulo-secao">${esc(texto)}</h2>
     ${nota ? `<span class="titulo-nota">${esc(nota)}</span>` : ''}
-    ${extra ? `<span class="espaco"></span>${extra}` : ''}
   </div>`;
 }
 
@@ -112,6 +105,19 @@ function iniciais(nome) {
 function frase(s) {
   const t = String(s ?? '').trim();
   return t ? t[0].toUpperCase() + t.slice(1).toLowerCase() : t;
+}
+
+// Ao lado do título do quadro. O placeholder já avisa a regra: nome pode ser
+// parcial, telefone/e-mail só acham o lead quando digitados por inteiro.
+function buscaLeadHtml() {
+  return `<label class="busca-lead">
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <circle cx="11" cy="11" r="7"/>
+      <path d="m21 21-4.3-4.3"/>
+    </svg>
+    <input type="text" id="busca-lead" autocomplete="off"
+      placeholder="Nome, ou telefone/e-mail completo" value="${esc(estado.buscaLead ?? '')}">
+  </label>`;
 }
 
 /* ---------------- Fotos cortadas na diagonal ---------------- */
@@ -200,23 +206,46 @@ function alternarTema() {
   if (botao) botao.textContent = rotuloTema();
 }
 
+// Só a lateral da gestão recolhe — a barra horizontal do instrutor não tem
+// esse conceito. Lembrada entre sessões, como o tema.
+const rotuloRecolher = () => (document.body.classList.contains('lateral-recolhida') ? '›' : '‹ Recolher');
+
+function alternarLateral() {
+  const recolhida = document.body.classList.toggle('lateral-recolhida');
+  localStorage.setItem('hub-lateral-recolhida', recolhida ? '1' : '0');
+  const botao = document.getElementById('recolher');
+  if (botao) botao.textContent = rotuloRecolher();
+}
+
 function renderMenu() {
   const admin = ehAdmin();
+  // Gestão trabalha em muitas telas e ganha a lateral fixa; o instrutor entra
+  // para ver o próprio recorte e volta a sair — a barra horizontal de sempre
+  // cabe melhor na visita curta.
+  document.body.classList.toggle('layout-topo', !admin);
+  document.body.classList.toggle('lateral-recolhida', admin && localStorage.getItem('hub-lateral-recolhida') === '1');
   menu.innerHTML = `
-    <div class="eu-quem">
-      ${admin
-        ? `<span class="eu-selo">${esc(iniciais(eu.nome))}</span>`
-        : `<img class="eu-selo" src="/public/instrutores/${esc(eu.fotoSlug)}.jpg"
-             alt="" data-iniciais="${esc(iniciais(eu.nome))}">`}
-      <span class="eu-nome">${esc(eu.nome)}</span>
-      <span class="eu-papel">${admin ? 'gestão' : 'instrutor'}</span>
+    <div class="eu-links">
+      <a class="link-lateral" href="#/">Eventos</a>
+      ${admin ? `<a class="link-lateral" href="#/instrutores">Instrutores</a>
+        <a class="link-lateral" href="#/crm-pipelines">Pipelines CRM</a>` : ''}
     </div>
-    <span class="fio-vertical"></span>
-    ${admin ? '<a class="link-topo" href="#/instrutores">Instrutores</a>' : ''}
-    <button class="link-topo" type="button" id="tema">${rotuloTema()}</button>
-    <button class="link-topo" type="button" id="sair">Sair</button>`;
+    <div class="eu-rodape">
+      <div class="eu-quem">
+        ${admin
+          ? `<span class="eu-selo">${esc(iniciais(eu.nome))}</span>`
+          : `<img class="eu-selo" src="/public/instrutores/${esc(eu.fotoSlug)}.jpg"
+               alt="" data-iniciais="${esc(iniciais(eu.nome))}">`}
+        <span class="eu-nome">${esc(eu.nome)}</span>
+        <span class="eu-papel">${admin ? 'gestão' : 'instrutor'}</span>
+      </div>
+      <button class="link-lateral" type="button" id="tema">${rotuloTema()}</button>
+      ${admin ? `<button class="link-lateral" type="button" id="recolher">${rotuloRecolher()}</button>` : ''}
+      <button class="link-lateral" type="button" id="sair">Sair</button>
+    </div>`;
   tratarFotosQuebradas(menu);
   document.getElementById('tema').addEventListener('click', alternarTema);
+  document.getElementById('recolher')?.addEventListener('click', alternarLateral);
   document.getElementById('sair').addEventListener('click', async () => {
     await fetch('/api/logout', { method: 'POST' });
     location.href = '/login';
@@ -225,7 +254,7 @@ function renderMenu() {
 
 /* ---------------- Home ---------------- */
 
-const esqueleto = () => '<div class="esqueleto"><div></div><div></div></div>';
+const esqueleto = () => '<div class="esqueleto"><div></div><div></div><div></div></div>';
 
 async function telaHome() {
   const titulo = ehAdmin() ? 'Todos os eventos' : 'Seus eventos';
@@ -251,25 +280,167 @@ async function telaHome() {
     return;
   }
 
-  const nota = ehAdmin()
-    ? `${plural(eventos.length, 'palestra', 'palestras')} registradas`
-    : `${plural(eventos.length, 'palestra', 'palestras')} suas`;
+  eventosDaHome = eventos;
 
-  app.innerHTML = (ehAdmin() ? await avisoDeSaude() : '') + tituloLinha(titulo, nota) + `
-    <div class="grade">
-      ${eventos.map((e) => `
-        <a class="card-evento" href="#/evento/${encodeURIComponent(e.slug)}">
-          ${elenco(e.instrutores, 3)}
-          <div class="miolo">
-            <div>
-              ${tituloEvento(e)}
-              <div class="ev-quem">${esc(quemNoPalco(e.instrutores))}</div>
+  app.innerHTML = (ehAdmin() ? await avisoDeSaude() : '')
+    + '<div id="cabeca"></div>'
+    + barraDeFiltros(eventos)
+    + '<div id="grade"></div>';
+
+  ligarFiltros();
+  renderGrade();
+}
+
+/* ---------------- Filtros da home ---------------- */
+
+// O popup do <select> nativo nem sempre respeita o tema — em algumas
+// combinações de Chrome+Windows é o sistema operacional quem desenha aquela
+// lista, não a página, e não dá pra garantir escuro só com CSS. Por isso o
+// dropdown é feito na mão: um botão-gatilho e uma lista própria, sempre no
+// tema certo porque é tudo <button> nosso.
+const iconeSetaSeletor = `<svg class="seletor-seta" viewBox="0 0 24 24" aria-hidden="true">
+  <path d="m6 9 6 6 6-6"/>
+</svg>`;
+
+// Um seletor com uma única opção não é escolha, é ruído: o de palestrante só
+// aparece para quem tem mais de um, e o de cidade só quando houver duas.
+function seletor(nome, rotulo, opcoes, escolhido) {
+  if (opcoes.length < 2) return '';
+  const todas = [{ valor: '', rotulo: 'Todos' }, ...opcoes];
+  const atual = todas.find((o) => o.valor === (escolhido || '')) ?? todas[0];
+  return `<label class="filtro">
+    <span>${esc(rotulo)}</span>
+    <div class="seletor" data-nome="${esc(nome)}">
+      <button type="button" class="seletor-gatilho" aria-haspopup="listbox" aria-expanded="false">
+        <span class="seletor-valor">${esc(atual.rotulo)}</span>
+        ${iconeSetaSeletor}
+      </button>
+      <div class="seletor-lista" role="listbox" hidden>
+        ${todas.map((o) => `<button type="button" role="option"
+          class="seletor-opcao${o.valor === atual.valor ? ' ativa' : ''}"
+          aria-selected="${o.valor === atual.valor}" data-valor="${esc(o.valor)}">${esc(o.rotulo)}</button>`).join('')}
+      </div>
+    </div>
+  </label>`;
+}
+
+function barraDeFiltros(eventos) {
+  const o = opcoesDeFiltro(eventos);
+  const cidades = o.cidades.map((c) => ({ valor: c, rotulo: c }));
+  const campos = seletor('periodo', 'Período', o.periodos, filtroDaHome.periodo)
+    + seletor('cidade', 'Cidade', cidades, filtroDaHome.cidade)
+    + seletor('palestrante', 'Palestrante', o.palestrantes, filtroDaHome.palestrante);
+  if (!campos) return '';
+  return `<div class="filtros" id="filtros">${campos}
+    <button class="botao discreto" type="button" id="limpar">Limpar</button>
+  </div>`;
+}
+
+// Só um dropdown aberto por vez — abrir um fecha os outros.
+function fecharSeletores() {
+  document.querySelectorAll('#filtros .seletor.aberto').forEach((el) => {
+    el.classList.remove('aberto');
+    el.querySelector('.seletor-gatilho').setAttribute('aria-expanded', 'false');
+    el.querySelector('.seletor-lista').hidden = true;
+  });
+}
+
+// Os seletores não são redesenhados a cada filtragem — só a grade é. Então
+// limpar precisa devolver cada um ao "Todos" na mão.
+function limparFiltros() {
+  filtroDaHome = { ...SEM_FILTRO };
+  document.querySelectorAll('#filtros .seletor').forEach((el) => {
+    const opcoes = el.querySelectorAll('.seletor-opcao');
+    const todos = opcoes[0]; // "Todos" é sempre a primeira opção
+    el.querySelector('.seletor-valor').textContent = todos.textContent;
+    opcoes.forEach((o, i) => {
+      o.classList.toggle('ativa', i === 0);
+      o.setAttribute('aria-selected', String(i === 0));
+    });
+  });
+  fecharSeletores();
+  renderGrade();
+}
+
+function ligarFiltros() {
+  const barra = document.getElementById('filtros');
+  if (!barra) return;
+
+  barra.querySelectorAll('.seletor').forEach((el) => {
+    const gatilho = el.querySelector('.seletor-gatilho');
+    const lista = el.querySelector('.seletor-lista');
+
+    gatilho.addEventListener('click', () => {
+      const vaiAbrir = !el.classList.contains('aberto');
+      fecharSeletores();
+      if (vaiAbrir) {
+        el.classList.add('aberto');
+        gatilho.setAttribute('aria-expanded', 'true');
+        lista.hidden = false;
+      }
+    });
+
+    lista.querySelectorAll('.seletor-opcao').forEach((opcao) => {
+      opcao.addEventListener('click', () => {
+        filtroDaHome = { ...filtroDaHome, [el.dataset.nome]: opcao.dataset.valor };
+        gatilho.querySelector('.seletor-valor').textContent = opcao.textContent;
+        lista.querySelectorAll('.seletor-opcao').forEach((o) => {
+          o.classList.toggle('ativa', o === opcao);
+          o.setAttribute('aria-selected', String(o === opcao));
+        });
+        fecharSeletores();
+        renderGrade();
+      });
+    });
+  });
+
+  document.getElementById('limpar').addEventListener('click', limparFiltros);
+}
+
+// Fecham o dropdown aberto ao clicar fora ou apertar Esc. Registrado uma vez
+// só (não a cada render da home) — fecharSeletores() não faz nada se não
+// houver barra de filtros na tela.
+document.addEventListener('click', (ev) => {
+  if (!ev.target.closest('.seletor')) fecharSeletores();
+});
+document.addEventListener('keydown', (ev) => {
+  if (ev.key === 'Escape') fecharSeletores();
+});
+
+const temFiltro = () => Object.values(filtroDaHome).some(Boolean);
+
+function renderGrade() {
+  const eventos = filtrarEventos(eventosDaHome, filtroDaHome);
+  const total = eventosDaHome.length;
+  const titulo = ehAdmin() ? 'Todos os eventos' : 'Seus eventos';
+
+  // Com filtro ligado, o que interessa é quanto do todo sobrou — o número solto
+  // faria parecer que a base encolheu.
+  const nota = temFiltro()
+    ? `${eventos.length} de ${plural(total, 'palestra', 'palestras')}`
+    : `${plural(total, 'palestra', 'palestras')} ${ehAdmin() ? 'registradas' : 'suas'}`;
+  document.getElementById('cabeca').innerHTML = tituloLinha(titulo, nota);
+
+  document.getElementById('grade').innerHTML = eventos.length
+    ? `<div class="grade">
+        ${eventos.map((e) => `
+          <a class="card-evento" href="#/evento/${encodeURIComponent(e.slug)}">
+            ${elenco(e.instrutores, 3)}
+            <div class="miolo">
+              <div>
+                ${tituloEvento(e, { ajustarAoNome: false })}
+                <div class="ev-quem">${esc(quemNoPalco(e.instrutores))}</div>
+              </div>
+              ${metricasPalestra(e)}
             </div>
-            ${metricasPalestra(e)}
-          </div>
-          <div class="barra-conv"><i style="width:${pct(e.conversao)}"></i></div>
-        </a>`).join('')}
-    </div>`;
+            <div class="barra-conv"><i style="width:${pct(e.conversao)}"></i></div>
+          </a>`).join('')}
+      </div>`
+    : `<div class="vazio"><h3>Nenhuma palestra com esses filtros</h3>
+        <p>Nenhum evento casa com a combinação escolhida. Troque um dos filtros
+           ou <button class="como-link" type="button" id="limpar-vazio">limpe todos</button>.</p></div>`;
+
+  document.getElementById('limpar-vazio')?.addEventListener('click', limparFiltros);
 
   tratarFotosQuebradas(app);
 }
@@ -312,33 +483,68 @@ function horaCurta(iso) {
 // coluna em que o card aparece.
 function cardLead(l) {
   return `<div class="card-lead">
-    <div class="topo-lead">
-      <span class="ln">${esc(l.nome)}</span>
-      ${ehAdmin() && l.instrutorConhecido ? `<span class="de">${esc(l.instrutor)}</span>` : ''}
-    </div>
+    <span class="ln">${esc(l.nome)}</span>
     <div class="tel">${l.telefone ? esc(mascararTelefone(l.telefone)) : 'sem telefone'}</div>
-    ${l.email ? `<div class="email">${esc(mascararEmail(l.email))}</div>` : ''}
+    <div class="email">${l.email ? esc(mascararEmail(l.email)) : 'sem email'}</div>
+    ${rodapeLead(l)}
   </div>`;
 }
 
+// Check-in ainda não tem fonte confiável (docs/dados-que-faltam.md) — até
+// `DataCheckin` existir em info_leads, todo card cai no "Sem check-in".
+// Closer (atendente) já é dado de verdade: "Sem closer" quando ninguém pegou
+// o lead ainda.
+function rodapeLead(l) {
+  return `<div class="rodape-lead">
+    ${l.closer
+      ? `<span class="closer">Closer: ${esc(l.closer)}</span>`
+      : '<span class="closer sem-dado">Sem closer</span>'}
+    ${l.checkinEm
+      ? `<span class="checkin">Check-in ${esc(dataCurta(String(l.checkinEm).slice(0, 10)))}</span>`
+      : '<span class="checkin sem-dado">Sem check-in</span>'}
+  </div>`;
+}
+
+// Mostra as 4 primeiras letras do usuário e o domínio inteiro. Usuário com 4
+// letras ou menos mascara tudo — nunca revela 100% do usuário, mesmo curto.
 function mascararEmail(email) {
   const s = String(email ?? '').trim();
   if (!s) return '';
   const [user, dominio] = s.split('@');
   if (!user) return s;
-  const visivel = user.length > 3 ? user.slice(3) : '';
-  return '•••' + visivel + (dominio ? '@' + dominio : '');
+  const visivel = user.length > 4 ? user.slice(0, 4) : '';
+  const escondido = '•'.repeat(Math.max(user.length - visivel.length, 1));
+  return visivel + escondido + (dominio ? '@' + dominio : '');
 }
 
+// Só os 4 últimos dígitos ficam visíveis — o resto (DDI, DDD, o número quase
+// todo) vira ponto, no padrão de "termina em ####" de app bancário.
 function mascararTelefone(tel) {
   const s = String(tel ?? '');
   if (s.length <= 4) return s;
-  return s.slice(0, -4) + '••••';
+  return '•'.repeat(s.length - 4) + s.slice(-4);
+}
+
+const soDigitos = (s) => String(s ?? '').replace(/\D/g, '');
+const semAcento = (s) => String(s ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+
+// Nome é busca parcial — já aparece inteiro na tela, não tem o que proteger.
+// Telefone e e-mail exigem o valor INTEIRO: são mascarados no cartão, e busca
+// parcial deixaria alguém ir testando dígito por dígito até achar a pessoa.
+function leadCombinaBusca(l, termoBruto) {
+  const termo = String(termoBruto ?? '').trim();
+  if (!termo) return true;
+  const peloNome = semAcento(l.nome).includes(semAcento(termo));
+  const digitos = soDigitos(termo);
+  const peloTelefone = digitos.length > 0 && digitos === soDigitos(l.telefone);
+  const peloEmail = termo.toLowerCase() === String(l.email ?? '').trim().toLowerCase();
+  return peloNome || peloTelefone || peloEmail;
 }
 
 function renderKanban() {
-  const { detalhe: d, filtroInstrutor: filtro, etapaAberta } = estado;
-  const porColuna = d.colunas.map((c) => (filtro ? c.leads.filter((l) => l.instrutorSlug === filtro) : c.leads));
+  const { detalhe: d, etapaAberta, buscaLead } = estado;
+  const porColuna = d.colunas.map((c) => c.leads.filter((l) => leadCombinaBusca(l, buscaLead)));
+  const buscando = buscaLead.trim().length > 0;
 
   document.getElementById('chips').innerHTML = d.colunas.map((c, i) =>
     `<button type="button" class="${i === etapaAberta ? 'on' : ''}" data-etapa="${i}">
@@ -353,15 +559,12 @@ function renderKanban() {
       </h4>
       <div class="coluna-leads">
         ${porColuna[i].map(cardLead).join('')
-          || '<p class="coluna-vazia">Nenhum lead nesta etapa</p>'}
+          || `<p class="coluna-vazia">${buscando ? 'Nenhum lead bate com a busca' : 'Nenhum lead nesta etapa'}</p>`}
       </div>
     </div>`).join('');
 
   document.querySelectorAll('#chips button').forEach((b) => {
     b.addEventListener('click', () => { estado.etapaAberta = Number(b.dataset.etapa); renderKanban(); });
-  });
-  document.querySelectorAll('.instrutor').forEach((el) => {
-    el.classList.toggle('ativo', el.dataset.slug === filtro);
   });
 }
 
@@ -375,10 +578,8 @@ async function telaDetalhe(slug) {
          <a href="#/">Voltar às palestras</a></p></div>`;
     return;
   }
-  estado = { detalhe: d, filtroInstrutor: null, etapaAberta: 0 };
-
+  estado = { detalhe: d, etapaAberta: 0, buscaLead: '' };
   const admin = ehAdmin();
-  const podeFiltrar = admin && d.instrutores.length > 1;
 
   app.innerHTML = `
     <a class="voltar" href="#/">← Palestras</a>
@@ -389,20 +590,23 @@ async function telaDetalhe(slug) {
           ${tituloEvento(d)}
           <div class="ev-quem">${esc(quemNoPalco(d.instrutores))}</div>
         </div>
-        ${metricasPalestra(d)}
+        ${metricasPalestra(d, { comLeads: false })}
       </div>
     </div>
 
     <div class="painel numeros">
       <div class="bloco">
         <span class="rotulo">Presença</span>
+        <!-- O check-in de lead é o número do palestrante: é dessa gente que sai
+             o trabalho dele depois do evento. Tribo e aldeia já eram casa, e o
+             geral é a soma dos três — os dois viraram apoio. -->
         <div class="metricas">
-          <span class="metrica"><b>${d.cadastrados}</b> cadastrados</span>
-          <span class="metrica"><b>${d.presentes}</b> check-in geral</span>
+          <span class="metrica"><b>${d.presentesLead}</b> check-in de leads</span>
           <span class="metrica conv"><b>${pct(d.pctPresenca)}</b> presentes</span>
         </div>
         <div class="metricas menor">
-          <span class="metrica"><b>${d.presentesLead}</b> lead</span>
+          <span class="metrica"><b>${d.cadastrados}</b> cadastrados</span>
+          <span class="metrica"><b>${d.presentes}</b> check-in geral</span>
           <span class="metrica"><b>${d.presentesTribo}</b> tribo</span>
           <span class="metrica"><b>${d.presentesAldeia}</b> aldeia</span>
         </div>
@@ -416,40 +620,29 @@ async function telaDetalhe(slug) {
           <span class="metrica conv"><b>${d.vendas}</b> ${d.vendas === 1 ? 'efetiva' : 'efetivas'}</span>
         </div>
       </div>
-    </div>
-
-    ${admin ? `
-      <div style="margin-top:30px">
-        ${tituloLinha('Instrutores no palco',
-          `números do funil de leads${podeFiltrar ? ' · clique para filtrar o quadro' : ''}`)}
-        <div class="grade-instrutores">
-          ${d.instrutores.map((ins) => `
-            <div class="instrutor" data-slug="${esc(ins.slug)}">
-              <div class="miolo">
-                <span class="nome">${esc(ins.instrutor)}</span>
-                ${metricasLeads(ins, { conversao: false })}
-              </div>
-            </div>`).join('')}
+      <div class="bloco">
+        <span class="rotulo">Leads</span>
+        <div class="metricas">
+          <span class="metrica"><b>${d.leads}</b> ${d.leads === 1 ? 'lead' : 'leads'}</span>
         </div>
       </div>
-      <div style="margin-top:32px">
-        ${tituloLinha('Quadro', 'onde cada lead está no atendimento')}
-      </div>
-    ` : `<div style="margin-top:30px">${tituloLinha('Seus leads', 'onde cada um está no atendimento')}</div>`}
+    </div>
+
+    <div class="painel quadro-cabeca">
+      ${admin
+        ? tituloLinha('Quadro', 'onde cada lead está no atendimento')
+        : tituloLinha('Seus leads', 'onde cada um está no atendimento')}
+      ${buscaLeadHtml()}
+    </div>
 
     <div id="chips" class="chips"></div>
     <div id="kanban" class="kanban"></div>`;
 
   tratarFotosQuebradas(app);
-
-  if (podeFiltrar) {
-    document.querySelectorAll('.instrutor').forEach((el) => {
-      el.addEventListener('click', () => {
-        estado.filtroInstrutor = estado.filtroInstrutor === el.dataset.slug ? null : el.dataset.slug;
-        renderKanban();
-      });
-    });
-  }
+  document.getElementById('busca-lead').addEventListener('input', (ev) => {
+    estado.buscaLead = ev.target.value;
+    renderKanban();
+  });
   renderKanban();
 }
 
@@ -644,6 +837,101 @@ function ligarAdmin() {
   });
 }
 
+/* ---------------- Admin: pipelines do CRM ---------------- */
+
+// Cadastro manual porque a UnniAPI não tem endpoint de listagem de pipeline/
+// coluna (confirmado com o suporte) — sem isto, cidade nova exigia editar
+// arquivo e mexer no código pra reconciliação enxergar o pipeline.
+function linhaCrmPipeline(l) {
+  return `<tr data-id="${l.id}">
+    <td>${esc(l.pipeline_nome)}</td>
+    <td class="mono">${esc(l.pipeline_id)}</td>
+    <td>${esc(l.etapa_nome)}</td>
+    <td class="mono">${esc(l.coluna_id)}</td>
+    <td><button class="botao discreto" data-acao="remover">Remover</button></td>
+  </tr>`;
+}
+
+async function telaCrmPipelines() {
+  if (!ehAdmin()) { location.hash = '#/'; return; }
+  app.innerHTML = esqueleto();
+
+  let linhas;
+  try { linhas = await pedir('/api/admin/crm-pipelines'); }
+  catch (e) {
+    app.innerHTML = `<div class="vazio"><h3>Não foi possível carregar</h3><p>${esc(e.message)}</p></div>`;
+    return;
+  }
+
+  const porPipeline = new Map();
+  for (const l of linhas) {
+    if (!porPipeline.has(l.pipeline_nome)) porPipeline.set(l.pipeline_nome, []);
+    porPipeline.get(l.pipeline_nome).push(l);
+  }
+
+  app.innerHTML = `
+    <a class="voltar" href="#/">← Eventos</a>
+    <div style="margin-top:22px">
+      ${tituloLinha('Pipelines CRM', `${plural(porPipeline.size, 'pipeline cadastrado', 'pipelines cadastrados')}`)}
+    </div>
+
+    <div class="aviso">
+      A UnniAPI não tem como listar pipeline/coluna — os IDs abaixo precisam ser
+      copiados manualmente da interface do Unnichat. Alimentam a reconciliação
+      que busca leads que o webhook perdeu.
+    </div>
+
+    <div class="painel">
+      <h3>Nova coluna</h3>
+      <form id="novo-crm">
+        <div class="linha-form">
+          <label class="campo"><span>Pipeline (nome)</span>
+            <input type="text" name="pipelineNome" placeholder="Presencial Cidade - [ddmm] SIGLA" required></label>
+          <label class="campo"><span>Pipeline ID</span><input type="text" name="pipelineId" required></label>
+          <label class="campo"><span>Etapa (nome)</span><input type="text" name="etapaNome" required></label>
+          <label class="campo"><span>Coluna ID</span><input type="text" name="colunaId" required></label>
+        </div>
+        <p class="erro" id="erro-novo-crm" role="alert"></p>
+        <button class="botao" type="submit">Cadastrar</button>
+      </form>
+    </div>
+
+    <div class="painel">
+      <h3>Cadastrados</h3>
+      <table class="tabela">
+        <thead><tr><th>Pipeline</th><th>Pipeline ID</th><th>Etapa</th><th>Coluna ID</th><th></th></tr></thead>
+        <tbody>${linhas.map(linhaCrmPipeline).join('') || '<tr><td colspan="5">Nenhum pipeline cadastrado ainda.</td></tr>'}</tbody>
+      </table>
+    </div>`;
+
+  document.getElementById('novo-crm').addEventListener('submit', async (ev) => {
+    ev.preventDefault();
+    const erro = document.getElementById('erro-novo-crm');
+    erro.textContent = '';
+    const d = new FormData(ev.target);
+    try {
+      await pedir('/api/admin/crm-pipelines', {
+        method: 'POST',
+        body: JSON.stringify({
+          pipelineNome: d.get('pipelineNome'), pipelineId: d.get('pipelineId'),
+          etapaNome: d.get('etapaNome'), colunaId: d.get('colunaId'),
+        }),
+      });
+      telaCrmPipelines();
+    } catch (e) { erro.textContent = e.message; }
+  });
+
+  app.querySelectorAll('tr[data-id] [data-acao="remover"]').forEach((botao) => {
+    botao.addEventListener('click', async () => {
+      const id = Number(botao.closest('tr').dataset.id);
+      try {
+        await pedir(`/api/admin/crm-pipelines/${id}`, { method: 'DELETE' });
+        telaCrmPipelines();
+      } catch (e) { alert(e.message); }
+    });
+  });
+}
+
 /* ---------------- Troca de senha obrigatória ---------------- */
 
 function telaTrocaSenha() {
@@ -685,6 +973,7 @@ function rotear() {
   const evento = hash.match(/^#\/evento\/(.+)$/);
   if (evento) return telaDetalhe(decodeURIComponent(evento[1]));
   if (hash === '#/instrutores') return telaInstrutores();
+  if (hash === '#/crm-pipelines') return telaCrmPipelines();
   return telaHome();
 }
 

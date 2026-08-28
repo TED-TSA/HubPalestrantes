@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import * as repo from './data/repository.js';
 import * as usuarios from './data/usuarios.js';
+import * as crmPipelines from './data/crmPipelines.js';
 import { conferirSenha, senhaAceitavel } from './auth/senha.js';
 import {
   criarSessao, destruirSessao, cookieDeSessao, cookieDeSaida,
@@ -122,11 +123,40 @@ export function criarRotas({ db }) {
   // dono. É o que impede um instrutor de logar numa tela vazia por causa de grafia.
   r.get('/admin/nomes', exigirAdmin, (_req, res, next) => {
     try {
-      const nomes = repo.nomesDeConexao(db);
+      const nomes = repo.nomesDePalestrante(db);
       res.json(nomes.map((nome) => {
         const dono = usuarios.donoDoNome(db, nome);
         return { nome, dono: dono ? { id: dono.id, nome: dono.nome } : null };
       }));
+    } catch (e) { next(e); }
+  });
+
+  // Mapa pipeline/coluna do CRM do Unnichat, usado pela reconciliação direta
+  // na API (a UnniAPI não tem endpoint de listagem — só sabemos os IDs que
+  // alguém cadastrar aqui). Ver server/data/reconciliarUnnichat.js.
+  r.get('/admin/crm-pipelines', exigirAdmin, (_req, res, next) => {
+    try { res.json(crmPipelines.listar(db)); } catch (e) { next(e); }
+  });
+
+  r.post('/admin/crm-pipelines', exigirAdmin, (req, res, next) => {
+    try {
+      const { pipelineNome, pipelineId, etapaNome, colunaId } = req.body ?? {};
+      if (!pipelineNome || !pipelineId || !etapaNome || !colunaId) {
+        return res.status(400).json({ erro: 'Preencha pipeline, pipelineId, etapa e colunaId' });
+      }
+      res.status(201).json(crmPipelines.criar(db, { pipelineNome, pipelineId, etapaNome, colunaId }));
+    } catch (e) {
+      if (String(e.message).includes('UNIQUE')) {
+        return res.status(409).json({ erro: 'Essa coluna já está cadastrada para esse pipeline' });
+      }
+      next(e);
+    }
+  });
+
+  r.delete('/admin/crm-pipelines/:id', exigirAdmin, (req, res, next) => {
+    try {
+      crmPipelines.remover(db, Number(req.params.id));
+      res.json({ ok: true });
     } catch (e) { next(e); }
   });
 

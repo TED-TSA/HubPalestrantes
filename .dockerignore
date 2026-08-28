@@ -1,0 +1,28 @@
+node_modules
+npm-debug.log
+*.log
+
+# Banco local (usuários/sessões) — nunca vai para a imagem.
+hub.db
+hub.db-journal
+hub.db-wal
+hub.db-shm
+*.db
+
+.git
+.gitignore
+.env
+.env.local
+
+# Não são necessários em runtime.
+docs
+test
+.superpowers
+Dockerfile
+.dockerignore
+.gcloudignore
+*.md
+
+# Mídia original pesada; o app serve o que já está em frontend/public.
+Palestrantes.mp4
+fotospalestrantes

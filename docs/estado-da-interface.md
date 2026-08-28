@@ -92,10 +92,15 @@ nova:
 
 ### 4.2 Tipografia e estrutura
 
-- **Display:** `Franklin Gothic Medium`, com `Corbel` de reserva. Titulos em caixa baixa e
-  peso medio.
+- **Display:** `Franklin Gothic Medium`. Títulos em caixa baixa e peso médio.
 - **Corpo:** `Corbel`. Carrega quase tudo: a v4 abandonou a caixa alta com
   espaçamento largo como estrutura.
+- **A reserva do display não pode ser o Corbel.** Franklin Gothic vem com o
+  Office, não com o Windows: em máquina sem ele a cadeia antiga caía no Corbel —
+  a mesma fonte do corpo — e o contraste entre título e texto desaparecia. Hoje a
+  reserva é `Segoe UI Variable Display` → `Segoe UI Semibold` → `Segoe UI` →
+  `Tahoma`, todas diferentes do corpo. `Libre Franklin` saiu da lista: não é fonte
+  de sistema, e o projeto não carrega fonte externa.
 - **Mono:** `Cascadia Mono` / `Consolas` para telefone e e-mail — são dados de
   conferir dígito a dígito, não texto de ler.
 - **Cantos quase retos:** 5px nos cards, 4px em campos e botões. Nada mais.
@@ -142,15 +147,31 @@ Card central de 1000px partido ao meio, no padrão do sistema financeiro da casa
 
 ### 5.2 Home — grade de eventos
 
-Título da seção em caixa baixa com uma frase ao lado ("3 palestras com leads
-registrados"). Cards largos, de 420 a 660px, com 236px de altura:
+Título da seção em caixa baixa com uma frase ao lado ("3 palestras
+registradas"). Abaixo dele, os filtros. Depois a grade: **três cards por linha**,
+205px de altura (duas colunas abaixo de 1180px, uma abaixo de 760px).
 
-- Nome partido em **sigla + número** (`CXJ` pesado, `3006` apagado).
+- **Cidade na primeira linha, data na segunda**, com o ano ("10 ago 2026"). O
+  corpo é o mesmo em todos os cards: o nome não encolhe mais conforme cresce, o
+  que numa grade de três deixava a linha parecendo uma serra. Cidade longa quebra
+  em duas linhas.
 - Uma linha dizendo quem subiu ao palco: "Elidiano e Bam no palco".
-- **Foto dos instrutores cortada na diagonal**, ocupando 47% do card.
+- **Foto dos instrutores cortada na diagonal**, ocupando 40% do card.
 - Métricas em linha no rodapé: número grande colado no rótulo pequeno, com a
-  conversão em âmbar.
+  conversão em âmbar. **A conversão é sobre vendas totais**, não efetivas.
 - **Barra de conversão** de 2px na base do card, proporcional ao percentual.
+
+**O texto tem teto de largura, e ele não é o mesmo em cima e embaixo.** A aresta
+da foto é diagonal: no topo ela só começa depois de 70% da largura, na base já
+chegou aos 60%. Por isso o nome pode ser mais largo (70%) que as métricas (58%).
+Com um teto só para os dois, ou o nome quebrava sem precisar, ou os números
+passavam por baixo do rosto.
+
+**Filtros:** período (mês e ano), cidade e palestrante, em `<select>`. Rodam no
+cliente — a home já recebe todos os eventos num payload só. As opções saem dos
+eventos que a pessoa tem na mão, então nenhuma escolha leva a uma tela vazia, e um
+seletor com uma única opção não aparece. Com filtro ligado, a frase do título vira
+"2 de 3 palestras".
 
 ### 5.3 Evento
 
@@ -160,13 +181,22 @@ registrados"). Cards largos, de 420 a 660px, com 236px de altura:
   "Seu recorte deste evento", métricas à direita. (Isto resolveu uma fraqueza
   apontada no briefing anterior — antes era um card solitário que parecia sobra
   de um layout feito para vários.)
-- **Gestão:** grade "Instrutores no palco", cada card com o mesmo corte diagonal,
-  nome em display e leads/vendas no pé. Clicar filtra o quadro.
-- **Kanban sem caixa:** cada coluna é um título com um filete de 2px embaixo e os
-  leads separados por hairline. Card de lead: nome (e, para a gestão, o nome do
-  instrutor à direita), telefone e e-mail mascarados em mono, e — quando houve
-  venda — um filete, ponto verde e o curso, tudo em verde.
-- Legenda "● comprou" na linha do título do quadro.
+- **Painel de números**, presença de um lado e vendas do outro. Na presença, o
+  destaque é o **check-in de leads** e a taxa de presentes; cadastrados, check-in
+  geral, tribo e aldeia ficam na linha secundária. O check-in de lead é o número
+  do palestrante — é dessa gente que sai o trabalho dele depois do evento;
+  tribo e aldeia já eram casa, e o geral é a soma dos três.
+- **Gestão:** grade "Instrutores no palco", nome em display e leads no pé. Clicar
+  filtra o quadro. Quando há lead sem dono identificado (o caso normal, ver seção
+  8), a frase do título avisa que esse lead conta para todos que subiram ao palco
+  — sem isso, ver dois instrutores com o mesmo número de leads parecia erro.
+- **Kanban de verdade:** o quadro mostra **todas as etapas do funil**, com lead ou
+  sem, na ordem de `config.ordemEtapas`. Etapa vazia também é informação
+  ("ninguém pagou tribo ainda"). São 13 raias hoje, e o quadro rola na horizontal.
+  Etapa que apareça nos dados sem estar na configuração entra no fim, em ordem
+  alfabética, e é o sinal de que a lista ficou velha.
+- Card de lead: nome (e, para a gestão, o nome do instrutor à direita), telefone e
+  e-mail mascarados em mono.
 
 ### 5.4 Cadastro de instrutores (só gestão)
 
@@ -207,12 +237,17 @@ Honestamente, para não gastarem tempo redescobrindo:
 - **A tela não guia ação nenhuma.** O instrutor abre e vê um retrato do passado.
   O que ele quer é "ligue para estes 4 hoje". Continua sendo a maior
   oportunidade do produto, e nada no desenho atual endereça isso.
-- **O quadro não mostra tempo.** Um lead parado há duas semanas em "Novo" parece
-  igual a um que entrou ontem. Os dados de data existem no BigQuery.
-- **O card de evento não tem data nem local.** Só sigla, número e três métricas.
-- **Dois campos existem na API e ninguém usa:** `modalidade` (Presencial/Online)
-  e `vendedor` (quem fechou a venda). São matéria-prima disponível.
-- **O kanban no celular** (item acima).
+- **O quadro não mostra tempo.** Um lead parado há duas semanas em "Em contato"
+  parece igual a um que entrou ontem. E a data de check-in que resolveria isso
+  **não existe de forma confiável na base** — ver `docs/dados-que-faltam.md`.
+- **O card do lead não tem data de check-in nem closer**, que foram pedidos. Mesmo
+  motivo do item acima.
+- **O dono do lead é uma aposta.** Só 10 dos 878 leads trazem `Conexao`
+  preenchida; o resto é creditado a todos que subiram ao palco. Isso faz o filtro
+  por instrutor devolver o mesmo quadro em qualquer opção. A tela hoje avisa, mas
+  quem resolve é a origem dos dados.
+- **13 raias no quadro** dão bastante rolagem horizontal para chegar às últimas
+  etapas. Foi pedido assim, mas vale observar em uso.
 - **O botão de tema só existe no app**, não na tela de login. Quem entra pela
   primeira vez pega a preferência do sistema e não tem como mudar antes de logar.
 
@@ -220,13 +255,18 @@ Honestamente, para não gastarem tempo redescobrindo:
 
 ## 8. Aviso sobre os dados
 
-A tabela de leads do BigQuery está **vazia**. Os dados reais ainda não caíram.
-Toda a interface precisa ficar decente com zero linha — os estados vazios
-importam tanto quanto as telas cheias.
+Os dados reais caíram: **878 leads em 7 funis**. Os estados vazios continuam
+valendo — um instrutor novo abre a tela sem nada —, mas os nomes já são os de
+verdade, e eles são mais longos e mais bagunçados que os do conjunto de exemplo:
 
-Consequência prática: os nomes de evento (`CXJ 3006`, `SP 4010`) e de etapa
-(`Novo`, `Em contato`, `Convertido`, `Não atendeu`) que aparecem hoje são de um
-conjunto de exemplo. Os reais podem ter comprimentos bem diferentes.
+- **Etapa vem com grafia instável.** `JÁ É MEMBRO` (9 leads) e `JA É MEMBRO` (18)
+  são a mesma etapa escrita de dois jeitos. O quadro agrupa ignorando acento e
+  caixa, senão a mesma etapa virava duas colunas.
+- **A origem grava ausência como a palavra `"null"`**, não como NULL de banco.
+  171 leads vêm com funil e etapa assim, e são descartados — o número aparece no
+  aviso da gestão para o problema não passar despercebido.
+- **Cidade de verdade é longa** ("Balneário Camboriú", "São José dos Campos"),
+  e é por isso que o card da home tem teto de largura e permite duas linhas.
 
 **Dos cinco palestrantes que aparecem no vídeo do login, dois ainda não têm foto
 nem cadastro:** Luiz Hota e Tonho. Eles caem no avatar de iniciais.

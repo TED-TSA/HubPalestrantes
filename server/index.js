@@ -2,9 +2,13 @@ import { criarApp } from './app.js';
 import { bancoPadrao } from './data/db.js';
 import { sincronizar, ultimaSincronizacao } from './data/sincronizacao.js';
 import { runQuery } from './data/bq.js';
+import { semearAdmin } from './data/seed.js';
 import { config } from '../config.js';
 
 const db = bancoPadrao();
+// Antes de servir: garante um admin quando ADMIN_EMAIL/ADMIN_SENHA existem.
+// Sem as variáveis é um no-op, então em desenvolvimento nada muda.
+semearAdmin(db);
 const app = criarApp({ db });
 
 // A tela lê do espelho em SQLite; quem fala com o BigQuery é só isto aqui.

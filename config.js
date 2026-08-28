@@ -1,7 +1,8 @@
 export const config = {
-  // As duas bases vivem em projetos diferentes, mas a service account
-  // validator-bq-pipeline lê as duas — por isso a query roda faturando no
-  // validator e referencia leads-ts por nome completo.
+  // As duas consultas (leads e palestras) leem tabelas do projeto leads-ts,
+  // mas o job roda faturando no validator-tradestars — a service account
+  // validator-bq-pipeline lê os dois, e a query referencia leads-ts por nome
+  // completo.
   projectId: 'validator-tradestars',
   // De quanto em quanto tempo o espelho local é atualizado a partir do
   // BigQuery. A tela nunca espera por isso: lê do SQLite. As palestras são
@@ -9,19 +10,38 @@ export const config = {
   sincronizacaoMs: Number(process.env.SYNC_MS) || 15 * 60_000,
   port: Number(process.env.PORT) || 3000,
   usarExemplo: process.env.USAR_EXEMPLO === '1',
+  // Token da esteira guestsBI (leads-ts.Presenciais.Guests). Sem segredo no
+  // código — ver server/data/guests.js e scripts/sincronizar-guests.js.
+  guestsBiToken: process.env.GUESTS_BI_TOKEN,
+  // Token da UnniAPI (CRM do Unnichat). Ver server/data/pipelinesUnnichat.js
+  // (mapa pipeline/coluna) e server/data/reconciliarUnnichat.js.
+  unnichatToken: process.env.UNNICHAT_TOKEN,
   dbArquivo: process.env.DB_ARQUIVO || 'hub.db',
   dominioPermitido: 'tradestars.com.br',
   // Em produção atrás de HTTPS, defina COOKIE_SEGURO=1 para marcar o cookie como Secure.
   cookieSeguro: process.env.COOKIE_SEGURO === '1',
 
   // EtapaId é um hash, não uma sequência: não dá para ordenar o funil por ele.
-  // Esta é a ordem de negócio; etapa que não estiver aqui vai para o fim.
+  // Esta é a ordem de negócio, e também a lista do que o quadro mostra: toda
+  // etapa daqui vira coluna, com lead ou sem. Etapa que aparecer nos dados sem
+  // estar aqui entra no fim, em ordem alfabética, para não sumir da tela.
+  //
+  // A lista saiu das etapas que a origem realmente usa (`SELECT DISTINCT
+  // EtapaName FROM leads-ts.hub_uni.info_leads`). A ordem é a do funil e é o
+  // único lugar para mexer nela.
   ordemEtapas: [
     'EM CONTATO',
+    'HORÁRIO AGENDADO',
+    'NEGOCIANDO',
     'MENTORIA',
+    'A PAGAR TRIBO',
     'PAGO TRIBO',
+    'PAGO ALDEIA',
+    'PAGO NO EVENTO',
     'JÁ É ALDEIA',
     'JÁ É MEMBRO',
+    'NÃO COMPARECEU',
+    'SEM CONDIÇÕES',
     'SEM INTERESSE',
   ],
 };

@@ -3,13 +3,19 @@
   "version": "0.1.0",
   "type": "module",
   "private": true,
+  "engines": {
+    "node": ">=24"
+  },
   "scripts": {
     "start": "node --disable-warning=ExperimentalWarning server/index.js",
     "dev": "node --watch --disable-warning=ExperimentalWarning server/index.js",
     "test": "node --disable-warning=ExperimentalWarning --test",
-    "criar-admin": "node --disable-warning=ExperimentalWarning scripts/criar-admin.js"
+    "criar-admin": "node --disable-warning=ExperimentalWarning scripts/criar-admin.js",
+    "sincronizar-guests": "node --disable-warning=ExperimentalWarning scripts/sincronizar-guests.js",
+    "reconciliar-unnichat": "node --disable-warning=ExperimentalWarning scripts/reconciliar-unnichat.js"
   },
   "dependencies": {
+    "@google-cloud/bigquery": "^9.0.2",
     "express": "^4.21.2"
   }
 }

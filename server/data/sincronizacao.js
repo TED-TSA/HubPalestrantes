@@ -1,8 +1,11 @@
 import { SQL_LEADS, SQL_PALESTRAS } from './queries.js';
 import { leadsExemplo, palestrasExemplo } from './exemplo.js';
 import { config } from '../../config.js';
-import { enriquecerLeads } from '../domain/metricas.js';
-import { montarPalestra, cidadeDoPipeline, indexarPalestrasPorCidade } from '../domain/palestra.js';
+import { enriquecerLeads, deduplicarLeads } from '../domain/metricas.js';
+import {
+  montarPalestra, cidadeDoPipeline, indexarPalestrasPorCidade,
+  parseCodigoEvento, indexarPalestrasPorSigla, resolverPorCodigoEvento,
+} from '../domain/palestra.js';
 import { slug, ehVazio } from '../domain/texto.js';
 
 async function buscar(deps) {
@@ -30,13 +33,31 @@ export async function sincronizar(db, deps) {
   const leads = enriquecerLeads(aproveitaveis);
 
   const porCidade = indexarPalestrasPorCidade(palestras);
+  const porSigla = indexarPalestrasPorSigla(palestras);
   const comPalestra = [];
   let semPalestra = 0;
   for (const l of leads) {
-    const p = porCidade.get(slug(cidadeDoPipeline(l.evento)));
+    // Três tentativas, da mais confiável pra mais incerta. `PipelineName` vem
+    // primeiro (formato fixo desde 21/08/2026 — "Presencial Balneário
+    // Camboriú - [1008] BAL"): é estrutural, uma coisa por negócio, não pode
+    // estar errado. `eventName` (upload de histórico, 20/08/2026) vem depois,
+    // só pra leads antigos sem código no PipelineName — ele é solto e pode
+    // carregar resíduo de outra campanha (contato que passou por Palmas antes
+    // de virar lead de Blumenau, por exemplo — visto na prática em 28/08/2026,
+    // ~100 leads de Blumenau com `eventName` de Palmas roubando o card errado
+    // quando checado primeiro). Só cai no fallback de cidade (a aposta na mais
+    // recente) quando nenhum dos dois resolve.
+    const p = resolverPorCodigoEvento(parseCodigoEvento(l.evento), porSigla)
+      ?? resolverPorCodigoEvento(parseCodigoEvento(l.eventName), porSigla)
+      ?? porCidade.get(slug(cidadeDoPipeline(l.evento)));
     if (!p) { semPalestra += 1; continue; }
     comPalestra.push([p.slug, l]);
   }
+  // A origem manda a mesma pessoa mais de uma vez às vezes — até 3x, visto na
+  // base real. O número que se perde aqui vai pro aviso da gestão, mesmo
+  // motivo do descartados/semPalestra: não sumir sem ninguém perceber.
+  const deduplicados = deduplicarLeads(comPalestra);
+  const duplicados = comPalestra.length - deduplicados.length;
 
   db.exec('BEGIN IMMEDIATE');
   try {
@@ -55,17 +76,19 @@ export async function sincronizar(db, deps) {
     }
 
     const insL = db.prepare(`INSERT INTO leads
-      (palestra_slug, nome, telefone, email, etapa, instrutor) VALUES (?,?,?,?,?,?)`);
-    for (const [slugPalestra, l] of comPalestra) {
+      (palestra_slug, nome, telefone, email, etapa, palestrantes, checkin_em, closer)
+      VALUES (?,?,?,?,?,?,?,?)`);
+    for (const [slugPalestra, l] of deduplicados) {
       insL.run(slugPalestra, l.nome, l.telefone || null, l.email || null, l.etapaName,
-        l.instrutorConhecido ? l.instrutor : null);
+        l.palestrantes ? JSON.stringify(l.palestrantes) : null, l.checkinEm, l.closer);
     }
 
-    db.prepare(`INSERT INTO sincronizacao (id, em, descartados, sem_palestra)
-      VALUES (1, ?, ?, ?)
+    db.prepare(`INSERT INTO sincronizacao (id, em, descartados, sem_palestra, duplicados)
+      VALUES (1, ?, ?, ?, ?)
       ON CONFLICT(id) DO UPDATE SET em = excluded.em,
-        descartados = excluded.descartados, sem_palestra = excluded.sem_palestra`)
-      .run(new Date().toISOString(), brutos.length - aproveitaveis.length, semPalestra);
+        descartados = excluded.descartados, sem_palestra = excluded.sem_palestra,
+        duplicados = excluded.duplicados`)
+      .run(new Date().toISOString(), brutos.length - aproveitaveis.length, semPalestra, duplicados);
 
     db.exec('COMMIT');
   } catch (e) {
@@ -73,9 +96,9 @@ export async function sincronizar(db, deps) {
     throw e;
   }
 
-  return { palestras: palestras.length, leads: comPalestra.length, semPalestra };
+  return { palestras: palestras.length, leads: deduplicados.length, semPalestra, duplicados };
 }
 
 export function ultimaSincronizacao(db) {
-  return db.prepare('SELECT em, descartados, sem_palestra FROM sincronizacao WHERE id = 1').get() ?? null;
+  return db.prepare('SELECT em, descartados, sem_palestra, duplicados FROM sincronizacao WHERE id = 1').get() ?? null;
 }

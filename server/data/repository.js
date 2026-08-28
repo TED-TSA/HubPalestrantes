@@ -28,24 +28,30 @@ function lerPalestra(linha) {
   };
 }
 
-// Um lead sem Conexão não tem dono individual: pertence a quem subiu ao palco
-// naquela palestra. É a única atribuição possível, já que a esmagadora maioria
-// vem sem esse campo.
-const donosDo = (lead, palestrantes) => (lead.instrutor ? [lead.instrutor] : palestrantes);
+// O campo Palestrante de info_leads é o principal: quando vem preenchido, é a
+// lista de quem fica com aquele lead (pode ser mais de um nome). Vazio, cai no
+// fallback de sempre — quem subiu ao palco naquela palestra, segundo a base de
+// métricas. Nos dois casos pode ser mais de uma pessoa, e quando for, o lead é
+// dos dois juntos — não existe "de quem exatamente" nesse caso.
+const donosDo = (palestrantesDoLead, palestrantesDoEvento) => (
+  palestrantesDoLead?.length ? palestrantesDoLead : palestrantesDoEvento
+);
 
 function leadsDa(db, palestra, usuario) {
   const meus = usuario && usuario.papel !== 'admin' ? new Set(usuario.vinculos ?? []) : null;
-  return db.prepare('SELECT nome, telefone, email, etapa, instrutor FROM leads WHERE palestra_slug = ?')
+  return db.prepare(
+    'SELECT nome, telefone, email, etapa, palestrantes, checkin_em, closer FROM leads WHERE palestra_slug = ?',
+  )
     .all(palestra.slug)
     .map((l) => ({
       nome: l.nome,
       telefone: l.telefone ?? '',
       email: l.email ?? '',
       etapaName: l.etapa,
-      instrutor: l.instrutor ?? '',
-      instrutorConhecido: !!l.instrutor,
-      instrutorSlug: l.instrutor ? slug(l.instrutor) : '',
-      donos: donosDo(l, palestra.palestrantes),
+      // checkin_em ainda é sempre null — ver o comentário em server/data/db.js.
+      checkinEm: l.checkin_em ?? null,
+      closer: l.closer ?? null,
+      donos: donosDo(l.palestrantes ? JSON.parse(l.palestrantes) : null, palestra.palestrantes),
     }))
     .filter((l) => !meus || l.donos.some((n) => meus.has(n)));
 }
@@ -95,19 +101,22 @@ export function saude(db) {
   return {
     descartados: s?.descartados ?? 0,
     semPalestra: s?.sem_palestra ?? 0,
+    duplicados: s?.duplicados ?? 0,
     atualizadoEm: s?.em ?? null,
   };
 }
 
 // Nomes de palestrante que realmente aparecem nos dados — alimenta a escolha
-// guiada do cadastro, para que ninguém digite a grafia errada.
-export function nomesDeConexao(db) {
+// guiada do cadastro, para que ninguém digite a grafia errada. Une as duas
+// bases porque elas às vezes divergem (docs/dados-que-faltam.md): um nome que
+// só apareça no Palestrante de info_leads não pode ficar de fora da lista.
+export function nomesDePalestrante(db) {
   const nomes = new Set();
   for (const p of db.prepare('SELECT palestrantes FROM palestras').all()) {
     for (const n of JSON.parse(p.palestrantes)) nomes.add(n);
   }
-  for (const l of db.prepare('SELECT DISTINCT instrutor FROM leads WHERE instrutor IS NOT NULL').all()) {
-    nomes.add(l.instrutor);
+  for (const l of db.prepare('SELECT palestrantes FROM leads WHERE palestrantes IS NOT NULL').all()) {
+    for (const n of JSON.parse(l.palestrantes)) nomes.add(n);
   }
   return [...nomes].sort((a, b) => a.localeCompare(b, 'pt-BR'));
 }

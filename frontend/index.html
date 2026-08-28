@@ -15,19 +15,22 @@
       document.documentElement.dataset.tema = t;
     })();
   </script>
+  <link rel="preload" href="/public/fonts/montserrat.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="/styles.css">
 </head>
 <body>
-  <header class="topo">
-    <div class="marca-bloco">
-      <svg class="selo-ts" viewBox="0 0 36 36" aria-hidden="true">
-        <path fill="currentColor" d="M0.275752 18.9946C0.670222 19.7525 4.73816 20.5472 6.08182 21.1523C11.173 23.4568 13.959 27.4423 15.7649 32.5219C16.2148 33.7933 15.9682 34.9547 17.2441 36H18.0392C20.4924 34.8753 20.4061 31.6233 21.6881 29.1294C23.2968 25.9997 25.8485 23.3773 28.9488 21.6841C31.3773 20.3638 33.9229 20.1926 36 18.585V17.7904C35.0508 15.3942 32.1231 15.6204 29.8672 14.5751C25.5466 12.5701 22.3907 8.64582 20.6464 4.32416C19.9931 2.69208 20.4184 0.0880825 18.218 0.00250512C15.58 -0.0952975 16.1223 2.69208 15.3272 4.60534C13.6507 8.64581 10.7169 12.3012 6.74754 14.3C4.59644 15.382 -1.3576 15.816 0.281921 18.9823L0.275752 18.9946Z"/>
-      </svg>
-      <a class="marca" href="#/">Hub do palestrante</a>
-    </div>
-    <nav id="menu" class="eu"></nav>
-  </header>
-  <main id="app" class="conteudo"></main>
+  <div class="armacao">
+    <aside class="lateral">
+      <div class="marca-bloco">
+        <svg class="selo-ts" viewBox="0 0 36 36" aria-hidden="true">
+          <path fill="currentColor" d="M0.275752 18.9946C0.670222 19.7525 4.73816 20.5472 6.08182 21.1523C11.173 23.4568 13.959 27.4423 15.7649 32.5219C16.2148 33.7933 15.9682 34.9547 17.2441 36H18.0392C20.4924 34.8753 20.4061 31.6233 21.6881 29.1294C23.2968 25.9997 25.8485 23.3773 28.9488 21.6841C31.3773 20.3638 33.9229 20.1926 36 18.585V17.7904C35.0508 15.3942 32.1231 15.6204 29.8672 14.5751C25.5466 12.5701 22.3907 8.64582 20.6464 4.32416C19.9931 2.69208 20.4184 0.0880825 18.218 0.00250512C15.58 -0.0952975 16.1223 2.69208 15.3272 4.60534C13.6507 8.64581 10.7169 12.3012 6.74754 14.3C4.59644 15.382 -1.3576 15.816 0.281921 18.9823L0.275752 18.9946Z"/>
+        </svg>
+        <a class="marca" href="#/">Hub do palestrante</a>
+      </div>
+      <nav id="menu" class="eu"></nav>
+    </aside>
+    <main id="app" class="conteudo"></main>
+  </div>
   <script src="/app.js" type="module"></script>
 </body>
 </html>

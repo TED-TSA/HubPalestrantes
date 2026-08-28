@@ -127,6 +127,40 @@ test('instrutor não entra nas rotas de admin', async () => {
   const { cookie } = await entrar(base, 'elizier@tradestars.com.br');
   assert.equal((await fetch(`${base}/api/admin/usuarios`, comCookie(cookie))).status, 403);
   assert.equal((await fetch(`${base}/api/admin/saude`, comCookie(cookie))).status, 403);
+  assert.equal((await fetch(`${base}/api/admin/crm-pipelines`, comCookie(cookie))).status, 403);
+  srv.close();
+});
+
+test('admin cadastra, lista e remove pipeline/coluna do CRM', async () => {
+  const { srv, base } = await subir();
+  const { cookie } = await entrar(base, 'admin@tradestars.com.br');
+
+  const criado = await (await fetch(`${base}/api/admin/crm-pipelines`, {
+    method: 'POST', ...comCookie(cookie),
+    headers: { ...comCookie(cookie).headers, 'content-type': 'application/json' },
+    body: JSON.stringify({
+      pipelineNome: 'Presencial Teste - [0101] TST', pipelineId: 'pid-teste',
+      etapaNome: 'EM CONTATO', colunaId: 'col-teste',
+    }),
+  })).json();
+  assert.ok(criado.id);
+
+  const lista = await (await fetch(`${base}/api/admin/crm-pipelines`, comCookie(cookie))).json();
+  assert.ok(lista.some((l) => l.id === criado.id));
+
+  const repetido = await fetch(`${base}/api/admin/crm-pipelines`, {
+    method: 'POST', ...comCookie(cookie),
+    headers: { ...comCookie(cookie).headers, 'content-type': 'application/json' },
+    body: JSON.stringify({
+      pipelineNome: 'Presencial Teste - [0101] TST', pipelineId: 'pid-teste',
+      etapaNome: 'SEM INTERESSE', colunaId: 'col-teste',
+    }),
+  });
+  assert.equal(repetido.status, 409, 'mesma coluna pro mesmo pipeline não pode duplicar');
+
+  await fetch(`${base}/api/admin/crm-pipelines/${criado.id}`, { method: 'DELETE', ...comCookie(cookie) });
+  const listaDepois = await (await fetch(`${base}/api/admin/crm-pipelines`, comCookie(cookie))).json();
+  assert.ok(!listaDepois.some((l) => l.id === criado.id));
   srv.close();
 });
 
