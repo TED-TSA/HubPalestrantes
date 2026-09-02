@@ -46,81 +46,82 @@ test('o cookie de sessão sai protegido', () => {
   assert.ok(montarCookie('hub_sessao', 'xyz', { seguro: true }).includes('Secure'));
 });
 
-function bancoComUsuario() {
-  const db = abrirBanco(':memory:');
-  const u = usuarios.criar(db, {
+async function bancoComUsuario() {
+  const db = await abrirBanco(':memory:');
+  const u = await usuarios.criar(db, {
     email: 'elidiano@tradestars.com.br', nome: 'Elidiano',
     senha: 'senha-de-teste', vinculos: ['Elidiano', 'Elidiano Silva'],
   });
   return { db, u };
 }
 
-test('sessão válida devolve o usuário com os vínculos', () => {
-  const { db, u } = bancoComUsuario();
-  const id = criarSessao(db, u.id);
-  const lido = lerSessao(db, id);
+test('sessão válida devolve o usuário com os vínculos', async () => {
+  const { db, u } = await bancoComUsuario();
+  const id = await criarSessao(db, u.id);
+  const lido = await lerSessao(db, id);
   assert.equal(lido.email, 'elidiano@tradestars.com.br');
   assert.deepEqual(lido.vinculos.sort(), ['Elidiano', 'Elidiano Silva']);
 });
 
-test('sessão expirada é rejeitada', () => {
-  const { db, u } = bancoComUsuario();
-  const id = criarSessao(db, u.id, Date.now() - DURACAO_MS * 2);
-  assert.equal(lerSessao(db, id), null);
+test('sessão expirada é rejeitada', async () => {
+  const { db, u } = await bancoComUsuario();
+  const id = await criarSessao(db, u.id, Date.now() - DURACAO_MS * 2);
+  assert.equal(await lerSessao(db, id), null);
 });
 
-test('manter conectado sobrevive ao prazo da sessão curta', () => {
-  const { db, u } = bancoComUsuario();
-  const curta = criarSessao(db, u.id);
-  const longa = criarSessao(db, u.id, Date.now(), DURACAO_LONGA_MS);
+test('manter conectado sobrevive ao prazo da sessão curta', async () => {
+  const { db, u } = await bancoComUsuario();
+  const curta = await criarSessao(db, u.id);
+  const longa = await criarSessao(db, u.id, Date.now(), DURACAO_LONGA_MS);
   const daquiTrezeHoras = Date.now() + 13 * 60 * 60 * 1000;
-  assert.equal(lerSessao(db, curta, daquiTrezeHoras), null);
-  assert.ok(lerSessao(db, longa, daquiTrezeHoras));
+  assert.equal(await lerSessao(db, curta, daquiTrezeHoras), null);
+  assert.ok(await lerSessao(db, longa, daquiTrezeHoras));
 });
 
-test('a renovação respeita a duração escolhida no login', () => {
-  const { db, u } = bancoComUsuario();
-  const longa = criarSessao(db, u.id, Date.now(), DURACAO_LONGA_MS);
+test('a renovação respeita a duração escolhida no login', async () => {
+  const { db, u } = await bancoComUsuario();
+  const longa = await criarSessao(db, u.id, Date.now(), DURACAO_LONGA_MS);
   // Uma requisição qualquer renova a sessão; ela não pode encolher para 12h.
-  lerSessao(db, longa);
-  const validade = Date.parse(db.prepare('SELECT expira_em FROM sessoes WHERE id = ?').get(longa).expira_em);
+  await lerSessao(db, longa);
+  const linha = (await db.execute({ sql: 'SELECT expira_em FROM sessoes WHERE id = ?', args: [longa] })).rows[0];
+  const validade = Date.parse(linha.expira_em);
   assert.ok(validade - Date.now() > DURACAO_MS, 'a sessão longa encolheu na renovação');
 });
 
-test('sessão destruída e token inventado são rejeitados', () => {
-  const { db, u } = bancoComUsuario();
-  const id = criarSessao(db, u.id);
-  destruirSessao(db, id);
-  assert.equal(lerSessao(db, id), null);
-  assert.equal(lerSessao(db, 'token-inventado'), null);
-  assert.equal(lerSessao(db, null), null);
+test('sessão destruída e token inventado são rejeitados', async () => {
+  const { db, u } = await bancoComUsuario();
+  const id = await criarSessao(db, u.id);
+  await destruirSessao(db, id);
+  assert.equal(await lerSessao(db, id), null);
+  assert.equal(await lerSessao(db, 'token-inventado'), null);
+  assert.equal(await lerSessao(db, null), null);
 });
 
-test('desativar o usuário derruba a sessão aberta', () => {
-  const { db, u } = bancoComUsuario();
-  const id = criarSessao(db, u.id);
-  usuarios.atualizar(db, u.id, { ativo: false });
-  assert.equal(lerSessao(db, id), null);
+test('desativar o usuário derruba a sessão aberta', async () => {
+  const { db, u } = await bancoComUsuario();
+  const id = await criarSessao(db, u.id);
+  await usuarios.atualizar(db, u.id, { ativo: false });
+  assert.equal(await lerSessao(db, id), null);
 });
 
-test('um nome de Conexao não pode ter dois donos', () => {
-  const { db } = bancoComUsuario();
-  assert.throws(() => usuarios.criar(db, {
+test('um nome de Conexao não pode ter dois donos', async () => {
+  const { db } = await bancoComUsuario();
+  await assert.rejects(() => usuarios.criar(db, {
     email: 'outro@tradestars.com.br', nome: 'Outro',
     senha: 'senha-de-teste', vinculos: ['Elidiano'],
   }));
 });
 
-test('paraCliente nunca devolve o hash da senha', () => {
-  const { db, u } = bancoComUsuario();
-  const publico = usuarios.paraCliente(usuarios.porId(db, u.id));
+test('paraCliente nunca devolve o hash da senha', async () => {
+  const { db, u } = await bancoComUsuario();
+  const publico = usuarios.paraCliente(await usuarios.porId(db, u.id));
   assert.equal(publico.senha_hash, undefined);
   assert.ok(!JSON.stringify(publico).includes('scrypt'));
 });
 
-test('email fora do domínio é recusado no cadastro', () => {
-  const db = abrirBanco(':memory:');
-  assert.throws(() => usuarios.criar(db, {
+test('email fora do domínio é recusado no cadastro', async () => {
+  const db = await abrirBanco(':memory:');
+  await assert.rejects(() => usuarios.criar(db, {
     email: 'alguem@gmail.com', nome: 'Alguém', senha: 'senha-de-teste',
   }));
 });

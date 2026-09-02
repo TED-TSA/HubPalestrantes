@@ -18,7 +18,7 @@ function ligarFundo() {
   if (!grande || quieto || cara) return;
 
   const video = document.getElementById('fundo');
-  video.src = '/public/login/fundo.mp4';
+  video.src = '/login/fundo.mp4';
   video.play().catch(() => {}); // autoplay bloqueado: o poster continua valendo
 }
 

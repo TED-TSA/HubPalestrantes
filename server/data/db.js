@@ -1,4 +1,4 @@
-import { DatabaseSync } from 'node:sqlite';
+import { createClient } from '@libsql/client';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { config } from '../../config.js';
@@ -70,10 +70,19 @@ CREATE TABLE IF NOT EXISTS leads (
   -- (docs/dados-que-faltam.md). Fica NULL até a sincronização ter de onde ler.
   -- closer: já é dado de verdade, vindo da coluna Atendente de info_leads.
   checkin_em TEXT,
-  closer TEXT
+  closer TEXT,
+  -- Chave estável de identidade do lead (palestra+telefone+email+nome), usada
+  -- pela sincronização para diferenciar "lead novo" de "lead que só mudou de
+  -- etapa" (server/data/sincronizacao.js) — só ela permite atualizar em vez de
+  -- apagar e reinserir tudo a cada ciclo, o que estouraria a cota de escrita
+  -- do Turso (ver docs da migração, 31/08/2026). Sem UNIQUE de propósito: dois
+  -- leads sem telefone/email e mesmo nome no mesmo evento colidiriam, e um
+  -- erro de constraint no meio do batch é pior que o raro falso-empate.
+  chave_diff TEXT NOT NULL
 );
 
 CREATE INDEX IF NOT EXISTS idx_leads_palestra ON leads(palestra_slug);
+CREATE INDEX IF NOT EXISTS idx_leads_chave_diff ON leads(chave_diff);
 
 CREATE TABLE IF NOT EXISTS sincronizacao (
   id INTEGER PRIMARY KEY CHECK (id = 1),
@@ -98,32 +107,45 @@ CREATE TABLE IF NOT EXISTS crm_pipelines (
 );
 `;
 
+async function colunas(db, tabela) {
+  const { rows } = await db.execute(`PRAGMA table_info(${tabela})`);
+  return rows.map((c) => c.name);
+}
+
 // Migração de bico: adiciona a coluna se o banco foi criado antes dela existir.
-// Sem isto, um hub.db já em uso quebraria ao subir a versão nova.
-function garantirColuna(db, tabela, coluna, definicao) {
-  const existe = db.prepare(`PRAGMA table_info(${tabela})`).all().some((c) => c.name === coluna);
-  if (!existe) db.exec(`ALTER TABLE ${tabela} ADD COLUMN ${coluna} ${definicao}`);
+// Sem isto, um hub.db/Turso já em uso quebraria ao subir a versão nova.
+async function garantirColuna(db, tabela, coluna, definicao) {
+  if (!(await colunas(db, tabela)).includes(coluna)) {
+    await db.execute(`ALTER TABLE ${tabela} ADD COLUMN ${coluna} ${definicao}`);
+  }
 }
 
 // O inverso: tira uma coluna que ficou pra trás de uma versão anterior. O
-// SQLite do node:sqlite (≥ 3.35) suporta DROP COLUMN direto.
-function removerColuna(db, tabela, coluna) {
-  const existe = db.prepare(`PRAGMA table_info(${tabela})`).all().some((c) => c.name === coluna);
-  if (existe) db.exec(`ALTER TABLE ${tabela} DROP COLUMN ${coluna}`);
+// libSQL (fork do SQLite ≥ 3.35) suporta DROP COLUMN direto.
+async function removerColuna(db, tabela, coluna) {
+  if ((await colunas(db, tabela)).includes(coluna)) {
+    await db.execute(`ALTER TABLE ${tabela} DROP COLUMN ${coluna}`);
+  }
 }
 
-export function abrirBanco(caminho = ':memory:') {
-  const db = new DatabaseSync(caminho);
-  db.exec(SCHEMA);
-  garantirColuna(db, 'sessoes', 'duracao_ms', 'INTEGER NOT NULL DEFAULT 43200000');
-  garantirColuna(db, 'leads', 'palestrantes', 'TEXT');
-  garantirColuna(db, 'leads', 'checkin_em', 'TEXT');
-  garantirColuna(db, 'leads', 'closer', 'TEXT');
-  garantirColuna(db, 'sincronizacao', 'duplicados', 'INTEGER NOT NULL DEFAULT 0');
+export async function abrirBanco(url = ':memory:', authToken = undefined) {
+  const db = createClient(authToken ? { url, authToken } : { url });
+  await db.executeMultiple(SCHEMA);
+  await garantirColuna(db, 'sessoes', 'duracao_ms', 'INTEGER NOT NULL DEFAULT 43200000');
+  await garantirColuna(db, 'leads', 'palestrantes', 'TEXT');
+  await garantirColuna(db, 'leads', 'checkin_em', 'TEXT');
+  await garantirColuna(db, 'leads', 'closer', 'TEXT');
+  // `chave_diff` não pode ter DEFAULT sensato (é composta de outras colunas) —
+  // quem já tinha um banco sem ela ganha um valor único provisório por linha
+  // (o `id`, que já é único), e a próxima sincronização substitui pelo valor
+  // de verdade de qualquer forma.
+  await garantirColuna(db, 'leads', 'chave_diff', "TEXT NOT NULL DEFAULT ''");
+  await db.execute("UPDATE leads SET chave_diff = 'migracao-' || id WHERE chave_diff = ''");
+  await garantirColuna(db, 'sincronizacao', 'duplicados', 'INTEGER NOT NULL DEFAULT 0');
   // `instrutor` era a atribuição vinda do campo Conexao; a atribuição agora sai
   // de Palestrante (coluna `palestrantes` acima). A próxima sincronização já
   // reescreve a tabela inteira, então tirar a coluna velha não perde nada.
-  removerColuna(db, 'leads', 'instrutor');
+  await removerColuna(db, 'leads', 'instrutor');
   return db;
 }
 
@@ -131,9 +153,13 @@ let padrao = null;
 
 export function bancoPadrao() {
   if (!padrao) {
-    const raiz = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
-    padrao = abrirBanco(path.join(raiz, config.dbArquivo));
-    semearCrmPipelines(padrao);
+    padrao = (async () => {
+      const url = config.tursoUrl
+        ?? `file:${path.join(path.dirname(fileURLToPath(import.meta.url)), '..', '..', config.dbArquivo)}`;
+      const db = await abrirBanco(url, config.tursoToken);
+      await semearCrmPipelines(db);
+      return db;
+    })();
   }
   return padrao;
 }

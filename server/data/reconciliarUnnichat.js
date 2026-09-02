@@ -132,7 +132,7 @@ export async function reconciliar(deps = {}) {
   const fetchImpl = deps.fetch ?? fetch;
   const bq = deps.bq ?? new BigQuery({ projectId: config.projectId });
   const escrever = deps.escrever ?? true;
-  const mapa = deps.mapa ?? comoMapa(deps.db ?? bancoPadrao());
+  const mapa = deps.mapa ?? await comoMapa(deps.db ?? await bancoPadrao());
   if (!Object.keys(mapa).length) throw new Error('crm_pipelines está vazia — cadastre ao menos um pipeline antes de reconciliar');
 
   const negocios = await buscarTodosOsNegocios(token, fetchImpl, mapa);

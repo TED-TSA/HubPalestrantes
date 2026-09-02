@@ -23,6 +23,6 @@ Dockerfile
 .gcloudignore
 *.md
 
-# Mídia original pesada; o app serve o que já está em frontend/public.
+# Mídia original pesada; o app serve o que já está em public/.
 Palestrantes.mp4
 fotospalestrantes

@@ -19,11 +19,15 @@ O app só lê `.jpg`, em 400×400. Se a sua imagem for PNG ou não for quadrada:
 ```bash
 ffmpeg -y -i original.png \
   -vf "scale=400:400:force_original_aspect_ratio=increase,crop=400:400" -q:v 3 \
-  frontend/public/instrutores/<slug>.jpg
+  public/instrutores/<slug>.jpg
 ```
 
 O corte é centralizado, então confira o resultado se o rosto não estiver no meio
 da imagem original.
+
+> **Depois de adicionar**: inclua o `<slug>` na lista `NOMES_COM_FOTO` em
+> `server/data/fotos.js` — o servidor não lê esta pasta em runtime (ela é
+> servida direto pela Vercel), então essa lista é quem diz ao app quem tem foto.
 
 > **Atenção ao vínculo:** a foto é resolvida pelo nome nos dados, não pelo nome
 > do cadastro. Se o instrutor estiver cadastrado como "João Gomes" mas o

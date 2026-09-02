@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { filtrarEventos, opcoesDeFiltro, SEM_FILTRO } from '../frontend/filtros.js';
+import { filtrarEventos, opcoesDeFiltro, SEM_FILTRO } from '../public/filtros.js';
 
 const eventos = [
   {

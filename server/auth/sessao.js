@@ -5,40 +5,51 @@ export const COOKIE_SESSAO = 'hub_sessao';
 export const DURACAO_MS = 12 * 60 * 60 * 1000;
 export const DURACAO_LONGA_MS = 30 * 24 * 60 * 60 * 1000;
 
-export function criarSessao(db, usuarioId, agora = Date.now(), duracao = DURACAO_MS) {
+export async function criarSessao(db, usuarioId, agora = Date.now(), duracao = DURACAO_MS) {
   const id = randomBytes(32).toString('base64url');
-  db.prepare('INSERT INTO sessoes (id, usuario_id, expira_em, duracao_ms) VALUES (?, ?, ?, ?)')
-    .run(id, usuarioId, new Date(agora + duracao).toISOString(), duracao);
+  await db.execute({
+    sql: 'INSERT INTO sessoes (id, usuario_id, expira_em, duracao_ms) VALUES (?, ?, ?, ?)',
+    args: [id, usuarioId, new Date(agora + duracao).toISOString(), duracao],
+  });
   return id;
 }
 
 // Devolve o usuário da sessão (já com os vínculos) ou null. Renova pela mesma
 // duração escolhida no login, para que quem marcou "manter conectado" não caia
 // de volta para 12h na primeira requisição.
-export function lerSessao(db, id, agora = Date.now()) {
+export async function lerSessao(db, id, agora = Date.now()) {
   if (!id) return null;
-  const sessao = db.prepare('SELECT * FROM sessoes WHERE id = ?').get(id);
+  const { rows: sessoes } = await db.execute({ sql: 'SELECT * FROM sessoes WHERE id = ?', args: [id] });
+  const sessao = sessoes[0];
   if (!sessao) return null;
   if (Date.parse(sessao.expira_em) <= agora) {
-    destruirSessao(db, id);
+    await destruirSessao(db, id);
     return null;
   }
-  const usuario = db.prepare('SELECT * FROM usuarios WHERE id = ? AND ativo = 1').get(sessao.usuario_id);
+  const { rows: usuarios } = await db.execute({
+    sql: 'SELECT * FROM usuarios WHERE id = ? AND ativo = 1',
+    args: [sessao.usuario_id],
+  });
+  const usuario = usuarios[0];
   if (!usuario) return null;
   const duracao = Number(sessao.duracao_ms) || DURACAO_MS;
-  db.prepare('UPDATE sessoes SET expira_em = ? WHERE id = ?')
-    .run(new Date(agora + duracao).toISOString(), id);
-  const vinculos = db.prepare('SELECT nome_conexao FROM vinculos WHERE usuario_id = ?')
-    .all(usuario.id).map((v) => v.nome_conexao);
-  return { ...usuario, vinculos };
+  await db.execute({
+    sql: 'UPDATE sessoes SET expira_em = ? WHERE id = ?',
+    args: [new Date(agora + duracao).toISOString(), id],
+  });
+  const { rows: vinculos } = await db.execute({
+    sql: 'SELECT nome_conexao FROM vinculos WHERE usuario_id = ?',
+    args: [usuario.id],
+  });
+  return { ...usuario, vinculos: vinculos.map((v) => v.nome_conexao) };
 }
 
-export function destruirSessao(db, id) {
-  if (id) db.prepare('DELETE FROM sessoes WHERE id = ?').run(id);
+export async function destruirSessao(db, id) {
+  if (id) await db.execute({ sql: 'DELETE FROM sessoes WHERE id = ?', args: [id] });
 }
 
-export function destruirSessoesDoUsuario(db, usuarioId) {
-  db.prepare('DELETE FROM sessoes WHERE usuario_id = ?').run(usuarioId);
+export async function destruirSessoesDoUsuario(db, usuarioId) {
+  await db.execute({ sql: 'DELETE FROM sessoes WHERE usuario_id = ?', args: [usuarioId] });
 }
 
 // Sem "manter conectado" o cookie não leva Max-Age: morre quando o navegador

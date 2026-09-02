@@ -11,80 +11,97 @@ export function emailDoDominio(email) {
   return normalizarEmail(email).endsWith(`@${config.dominioPermitido}`);
 }
 
-function comVinculos(db, usuario) {
+async function comVinculos(db, usuario) {
   if (!usuario) return null;
-  const vinculos = db.prepare('SELECT nome_conexao FROM vinculos WHERE usuario_id = ? ORDER BY nome_conexao')
-    .all(usuario.id).map((v) => v.nome_conexao);
-  return { ...usuario, vinculos };
+  const { rows } = await db.execute({
+    sql: 'SELECT nome_conexao FROM vinculos WHERE usuario_id = ? ORDER BY nome_conexao',
+    args: [usuario.id],
+  });
+  return { ...usuario, vinculos: rows.map((v) => v.nome_conexao) };
 }
 
-export function porEmail(db, email) {
-  return comVinculos(db, db.prepare('SELECT * FROM usuarios WHERE email = ?').get(normalizarEmail(email)));
+export async function porEmail(db, email) {
+  const { rows } = await db.execute({ sql: 'SELECT * FROM usuarios WHERE email = ?', args: [normalizarEmail(email)] });
+  return comVinculos(db, rows[0] ?? null);
 }
 
-export function porId(db, id) {
-  return comVinculos(db, db.prepare('SELECT * FROM usuarios WHERE id = ?').get(id));
+export async function porId(db, id) {
+  const { rows } = await db.execute({ sql: 'SELECT * FROM usuarios WHERE id = ?', args: [id] });
+  return comVinculos(db, rows[0] ?? null);
 }
 
-export function listar(db) {
-  return db.prepare('SELECT * FROM usuarios ORDER BY papel, nome').all().map((u) => comVinculos(db, u));
+export async function listar(db) {
+  const { rows } = await db.execute('SELECT * FROM usuarios ORDER BY papel, nome');
+  return Promise.all(rows.map((u) => comVinculos(db, u)));
 }
 
-export function criar(db, { email, nome, senha, papel = 'instrutor', vinculos = [] }) {
+export async function criar(db, { email, nome, senha, papel = 'instrutor', vinculos = [] }) {
   const e = normalizarEmail(email);
   if (!emailDoDominio(e)) throw new Error(`O email precisa ser @${config.dominioPermitido}`);
   if (!String(nome ?? '').trim()) throw new Error('Informe o nome');
-  const info = db.prepare(`
-    INSERT INTO usuarios (email, nome, senha_hash, papel, ativo, precisa_trocar_senha, criado_em)
-    VALUES (?, ?, ?, ?, 1, 1, ?)
-  `).run(e, String(nome).trim(), gerarHash(senha), papel, new Date().toISOString());
+  const info = await db.execute({
+    sql: `INSERT INTO usuarios (email, nome, senha_hash, papel, ativo, precisa_trocar_senha, criado_em)
+    VALUES (?, ?, ?, ?, 1, 1, ?)`,
+    args: [e, String(nome).trim(), gerarHash(senha), papel, new Date().toISOString()],
+  });
   const id = Number(info.lastInsertRowid);
-  definirVinculos(db, id, vinculos);
+  await definirVinculos(db, id, vinculos);
   return porId(db, id);
 }
 
-export function atualizar(db, id, { nome, papel, ativo, vinculos }) {
-  const atual = porId(db, id);
+export async function atualizar(db, id, { nome, papel, ativo, vinculos }) {
+  const atual = await porId(db, id);
   if (!atual) throw new Error('Usuário não encontrado');
-  db.prepare('UPDATE usuarios SET nome = ?, papel = ?, ativo = ? WHERE id = ?').run(
-    nome === undefined ? atual.nome : String(nome).trim(),
-    papel === undefined ? atual.papel : papel,
-    ativo === undefined ? atual.ativo : (ativo ? 1 : 0),
-    id,
-  );
-  if (vinculos !== undefined) definirVinculos(db, id, vinculos);
+  await db.execute({
+    sql: 'UPDATE usuarios SET nome = ?, papel = ?, ativo = ? WHERE id = ?',
+    args: [
+      nome === undefined ? atual.nome : String(nome).trim(),
+      papel === undefined ? atual.papel : papel,
+      ativo === undefined ? atual.ativo : (ativo ? 1 : 0),
+      id,
+    ],
+  });
+  if (vinculos !== undefined) await definirVinculos(db, id, vinculos);
   // Desativar alguém precisa derrubar a sessão aberta dele, senão o acesso
   // continua valendo até o cookie expirar.
-  if (ativo === false || ativo === 0) destruirSessoesDoUsuario(db, id);
+  if (ativo === false || ativo === 0) await destruirSessoesDoUsuario(db, id);
   return porId(db, id);
 }
 
-export function trocarSenha(db, id, senha, { manterSessoes = false } = {}) {
-  db.prepare('UPDATE usuarios SET senha_hash = ?, precisa_trocar_senha = 0 WHERE id = ?')
-    .run(gerarHash(senha), id);
-  if (!manterSessoes) destruirSessoesDoUsuario(db, id);
+export async function trocarSenha(db, id, senha, { manterSessoes = false } = {}) {
+  await db.execute({
+    sql: 'UPDATE usuarios SET senha_hash = ?, precisa_trocar_senha = 0 WHERE id = ?',
+    args: [gerarHash(senha), id],
+  });
+  if (!manterSessoes) await destruirSessoesDoUsuario(db, id);
 }
 
-export function resetarSenha(db, id, senha) {
-  db.prepare('UPDATE usuarios SET senha_hash = ?, precisa_trocar_senha = 1 WHERE id = ?')
-    .run(gerarHash(senha), id);
-  destruirSessoesDoUsuario(db, id);
+export async function resetarSenha(db, id, senha) {
+  await db.execute({
+    sql: 'UPDATE usuarios SET senha_hash = ?, precisa_trocar_senha = 1 WHERE id = ?',
+    args: [gerarHash(senha), id],
+  });
+  await destruirSessoesDoUsuario(db, id);
 }
 
-export function definirVinculos(db, usuarioId, nomes) {
+export async function definirVinculos(db, usuarioId, nomes) {
   const limpos = [...new Set((nomes ?? []).map((n) => String(n).trim()).filter(Boolean))];
-  db.prepare('DELETE FROM vinculos WHERE usuario_id = ?').run(usuarioId);
-  const ins = db.prepare('INSERT INTO vinculos (usuario_id, nome_conexao) VALUES (?, ?)');
+  await db.execute({ sql: 'DELETE FROM vinculos WHERE usuario_id = ?', args: [usuarioId] });
   for (const nome of limpos) {
-    try { ins.run(usuarioId, nome); }
-    catch { throw new Error(`O nome "${nome}" já pertence a outro instrutor`); }
+    try {
+      await db.execute({ sql: 'INSERT INTO vinculos (usuario_id, nome_conexao) VALUES (?, ?)', args: [usuarioId, nome] });
+    } catch {
+      throw new Error(`O nome "${nome}" já pertence a outro instrutor`);
+    }
   }
 }
 
-export function donoDoNome(db, nomeConexao) {
-  return db.prepare(`
-    SELECT u.* FROM vinculos v JOIN usuarios u ON u.id = v.usuario_id WHERE v.nome_conexao = ?
-  `).get(nomeConexao) ?? null;
+export async function donoDoNome(db, nomeConexao) {
+  const { rows } = await db.execute({
+    sql: 'SELECT u.* FROM vinculos v JOIN usuarios u ON u.id = v.usuario_id WHERE v.nome_conexao = ?',
+    args: [nomeConexao],
+  });
+  return rows[0] ?? null;
 }
 
 // Visão pública do usuário: nunca devolve senha_hash para o frontend.

@@ -1,32 +1,20 @@
-import { readdirSync } from 'node:fs';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
-
-const PASTA = path.join(
-  path.dirname(fileURLToPath(import.meta.url)), '..', '..', 'frontend', 'public', 'instrutores',
-);
-const VALIDADE_MS = 30_000;
-
-let conhecidas = null;
-let lidoEm = 0;
-
 // Sem isto, o navegador pede a foto de quem não tem arquivo, toma 404 e só então
 // troca pelas iniciais — e repete a cada volta para a home. Cinco dos sete
 // palestrantes estão nessa situação hoje.
-function listar() {
-  const agora = Date.now();
-  if (conhecidas && agora - lidoEm < VALIDADE_MS) return conhecidas;
-  try {
-    conhecidas = new Set(
-      readdirSync(PASTA)
-        .filter((f) => f.toLowerCase().endsWith('.jpg'))
-        .map((f) => f.slice(0, -4)),
-    );
-  } catch {
-    conhecidas = new Set();
-  }
-  lidoEm = agora;
-  return conhecidas;
-}
+//
+// Antes isto lia `frontend/public/instrutores` com `readdirSync` a cada troca
+// de tela (com cache de 30s). Na Vercel isso não é confiável: os arquivos em
+// `public/` são servidos direto pelo CDN deles, não pela função — o processo
+// do servidor não tem garantia de enxergar essa pasta em runtime. Por isso
+// virou uma lista mantida à mão (ver public/instrutores/README.md).
+const NOMES_COM_FOTO = new Set([
+  'bam',
+  'elidiano',
+  'jacsson-santos',
+  'joao-gomes',
+  'luiz-hota',
+  'pipo',
+  'siqueira',
+]);
 
-export const temFoto = (slug) => listar().has(slug);
+export const temFoto = (slug) => NOMES_COM_FOTO.has(slug);

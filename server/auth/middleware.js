@@ -4,11 +4,13 @@ import { COOKIE_SESSAO, lerSessao } from './sessao.js';
 // Anexa req.usuario quando houver sessão válida. Nunca bloqueia — quem bloqueia
 // são os dois middlewares abaixo, para que rotas públicas (login) usem o mesmo.
 export function comUsuario(db) {
-  return (req, _res, next) => {
-    const id = lerCookies(req.headers.cookie)[COOKIE_SESSAO];
-    req.sessaoId = id ?? null;
-    req.usuario = lerSessao(db, id);
-    next();
+  return async (req, _res, next) => {
+    try {
+      const id = lerCookies(req.headers.cookie)[COOKIE_SESSAO];
+      req.sessaoId = id ?? null;
+      req.usuario = await lerSessao(db, id);
+      next();
+    } catch (e) { next(e); }
   };
 }
 

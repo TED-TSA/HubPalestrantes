@@ -1,14 +1,22 @@
 import { BigQuery } from '@google-cloud/bigquery';
 import { config } from '../../config.js';
 
-// A autenticação vem do ambiente (Application Default Credentials): no Cloud Run
-// é a service account do serviço; em máquina local é o ADC do gcloud. Nenhum
-// segredo no código.
+// Em máquina local, a autenticação vem do ADC do gcloud (Application Default
+// Credentials) — não tem segredo no código. Na Vercel não existe metadata
+// server nem `gcloud` logado, então a service account `validator-bq-pipeline`
+// (BigQuery Job User em validator-tradestars, BigQuery Data Viewer em
+// leads-ts) precisa ser passada explicitamente via GOOGLE_APPLICATION_CREDENTIALS_JSON
+// (o conteúdo inteiro da chave .json, numa env var — a Vercel não tem
+// filesystem persistente pra apontar um caminho de arquivo).
 //
 // O projectId define só onde o job é faturado. As tabelas são referenciadas
 // pelo nome completo (`leads-ts...`, `validator-tradestars...`), então uma
 // query só cruza os dois projetos.
-const bq = new BigQuery({ projectId: config.projectId });
+const opcoesBq = { projectId: config.projectId };
+if (config.googleCredenciaisJson) {
+  opcoesBq.credentials = JSON.parse(config.googleCredenciaisJson);
+}
+const bq = new BigQuery(opcoesBq);
 
 // Antes isto chamava o `bq` CLI via spawn e precisava consertar o JSON que o
 // Python emitia (emoji com escape \U, acento na codepage do console). A
