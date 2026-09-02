@@ -5,10 +5,10 @@ import { runQuery } from './data/bq.js';
 import { semearAdmin } from './data/seed.js';
 import { config } from '../config.js';
 
-const db = bancoPadrao();
+const db = await bancoPadrao();
 // Antes de servir: garante um admin quando ADMIN_EMAIL/ADMIN_SENHA existem.
 // Sem as variáveis é um no-op, então em desenvolvimento nada muda.
-semearAdmin(db);
+await semearAdmin(db);
 const app = criarApp({ db });
 
 // A tela lê do espelho em SQLite; quem fala com o BigQuery é só isto aqui.
@@ -28,9 +28,9 @@ async function atualizar(motivo) {
   }
 }
 
-app.listen(config.port, () => {
+app.listen(config.port, async () => {
   console.log(`Hub do Palestrante em http://localhost:${config.port}`);
-  const anterior = ultimaSincronizacao(db);
+  const anterior = await ultimaSincronizacao(db);
   console.log(anterior
     ? `Servindo os dados de ${anterior.em}; atualizando em segundo plano.`
     : 'Banco vazio: buscando os dados pela primeira vez.');

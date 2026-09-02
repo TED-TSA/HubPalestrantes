@@ -1,5 +1,5 @@
 # O que NÃO enviar para o Cloud Build. O npm ci roda lá, então node_modules
-# fica de fora; o resto do que importa (Dockerfile, package*, server, frontend,
+# fica de fora; o resto do que importa (Dockerfile, package*, server, public,
 # config.js) é enviado.
 node_modules
 *.log

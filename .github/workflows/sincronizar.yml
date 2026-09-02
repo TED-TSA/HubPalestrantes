@@ -1,0 +1,25 @@
+name: Sincronizar Hub do Palestrante
+
+# O Cron Job nativo da Vercel, no plano Hobby, só roda 1x/dia — insuficiente
+# pra sincronização de 15 em 15 min que o app precisa. Este workflow substitui
+# isso: bate na rota protegida GET /api/cron/sincronizar a cada 15 min.
+#
+# Segredos do repositório necessários (Settings > Secrets and variables >
+# Actions):
+#   HUB_URL      — URL de produção na Vercel (ex.: https://hub-palestrante.vercel.app)
+#   CRON_SECRET  — o mesmo valor cadastrado como env var CRON_SECRET na Vercel
+
+on:
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch: {}
+
+jobs:
+  sincronizar:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Chamar /api/cron/sincronizar
+        run: |
+          curl --fail --show-error --silent \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            "${{ secrets.HUB_URL }}/api/cron/sincronizar"

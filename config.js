@@ -4,6 +4,10 @@ export const config = {
   // validator-bq-pipeline lê os dois, e a query referencia leads-ts por nome
   // completo.
   projectId: 'validator-tradestars',
+  // Chave da service account do BigQuery, como JSON inteiro numa env var (a
+  // Vercel não tem filesystem persistente nem ADC do gcloud). Sem ela, cai no
+  // ADC local — ver server/data/bq.js.
+  googleCredenciaisJson: process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON,
   // De quanto em quanto tempo o espelho local é atualizado a partir do
   // BigQuery. A tela nunca espera por isso: lê do SQLite. As palestras são
   // históricas e os leads andam ao longo do dia, então 15 minutos sobra.
@@ -17,6 +21,10 @@ export const config = {
   // (mapa pipeline/coluna) e server/data/reconciliarUnnichat.js.
   unnichatToken: process.env.UNNICHAT_TOKEN,
   dbArquivo: process.env.DB_ARQUIVO || 'hub.db',
+  // Turso (libSQL hospedado) em produção; sem as duas variáveis, cai no
+  // arquivo local (dev) — ver server/data/db.js.
+  tursoUrl: process.env.TURSO_DATABASE_URL,
+  tursoToken: process.env.TURSO_AUTH_TOKEN,
   dominioPermitido: 'tradestars.com.br',
   // Em produção atrás de HTTPS, defina COOKIE_SEGURO=1 para marcar o cookie como Secure.
   cookieSeguro: process.env.COOKIE_SEGURO === '1',

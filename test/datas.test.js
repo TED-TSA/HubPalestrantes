@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { dataCurta, rotuloPeriodo } from '../frontend/datas.js';
+import { dataCurta, rotuloPeriodo } from '../public/datas.js';
 
 // Montado na mão de propósito: `new Date('2026-08-10')` é lido como UTC e
 // mostraria 9 de agosto no fuso do Brasil.

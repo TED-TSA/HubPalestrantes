@@ -163,7 +163,7 @@ function elenco(instrutores, limite) {
       const dentroDaFaixa = ins.temFoto === false
         ? `<span class="ini" style="left:${centro}%">${esc(iniciais(ins.instrutor))}</span>`
         : `<span class="dentro" style="clip-path:${dentro}">
-             <img class="rosto" src="/public/instrutores/${esc(ins.slug)}.jpg" alt="${esc(ins.instrutor)}"
+             <img class="rosto" src="/instrutores/${esc(ins.slug)}.jpg" alt="${esc(ins.instrutor)}"
                   data-iniciais="${esc(iniciais(ins.instrutor))}" style="left:${esquerda}%;width:${largura}%">
            </span>`;
       return `<span class="faixa" style="clip-path:${fora}" data-centro="${centro}">${dentroDaFaixa}</span>`;
@@ -234,7 +234,7 @@ function renderMenu() {
       <div class="eu-quem">
         ${admin
           ? `<span class="eu-selo">${esc(iniciais(eu.nome))}</span>`
-          : `<img class="eu-selo" src="/public/instrutores/${esc(eu.fotoSlug)}.jpg"
+          : `<img class="eu-selo" src="/instrutores/${esc(eu.fotoSlug)}.jpg"
                alt="" data-iniciais="${esc(iniciais(eu.nome))}">`}
         <span class="eu-nome">${esc(eu.nome)}</span>
         <span class="eu-papel">${admin ? 'gestão' : 'instrutor'}</span>

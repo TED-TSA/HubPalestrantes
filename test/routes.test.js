@@ -11,11 +11,11 @@ const SENHA = 'senha-de-teste';
 
 async function subir() {
   zerarTudo();
-  const db = abrirBanco(':memory:');
-  usuarios.criar(db, { email: 'admin@tradestars.com.br', nome: 'Admin', senha: SENHA, papel: 'admin' });
+  const db = await abrirBanco(':memory:');
+  await usuarios.criar(db, { email: 'admin@tradestars.com.br', nome: 'Admin', senha: SENHA, papel: 'admin' });
   // Elizier subiu em Sorocaba; Elidiano em Ribeirão Preto e Uberlândia.
-  usuarios.criar(db, { email: 'elizier@tradestars.com.br', nome: 'Elizier', senha: SENHA, vinculos: ['Elizier'] });
-  usuarios.criar(db, { email: 'marcos@tradestars.com.br', nome: 'Marcos', senha: SENHA, vinculos: ['Marcos'] });
+  await usuarios.criar(db, { email: 'elizier@tradestars.com.br', nome: 'Elizier', senha: SENHA, vinculos: ['Elizier'] });
+  await usuarios.criar(db, { email: 'marcos@tradestars.com.br', nome: 'Marcos', senha: SENHA, vinculos: ['Marcos'] });
 
   await sincronizar(db, {
     runQuery: async (sql) => (sql.includes('presencial_metricas') ? palestrasExemplo : leadsExemplo),

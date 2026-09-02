@@ -49,11 +49,11 @@ ffmpeg -y \
 [4:v]scale=720:1280,setsar=1,fps=30,hue=s=0[v4];\
 [v0][v1][v2][v3][v4]concat=n=5:v=1:a=0[out]" \
   -map "[out]" -an -c:v libx264 -crf 23 -preset slow -pix_fmt yuv420p \
-  -movflags +faststart frontend/public/login/fundo.mp4
+  -movflags +faststart public/login/fundo.mp4
 
 # poster: um frame parado do resultado
-ffmpeg -y -ss 2 -i frontend/public/login/fundo.mp4 -frames:v 1 -q:v 4 \
-  frontend/public/login/fundo.jpg
+ffmpeg -y -ss 2 -i public/login/fundo.mp4 -frames:v 1 -q:v 4 \
+  public/login/fundo.jpg
 ```
 
 Para escolher os trechos sem abrir editor, monte uma folha de contato de cada

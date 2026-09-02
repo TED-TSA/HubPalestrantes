@@ -10,8 +10,8 @@ hub.db-journal
 hub.db-wal
 hub.db-shm
 
-# Mídia original. O que o app serve são as versões processadas em
-# frontend/public/. Guardar as duas cópias no git só inchava o repositório
-# (o vídeo sozinho tem 46 MB).
+# Mídia original. O que o app serve são as versões processadas em public/.
+# Guardar as duas cópias no git só inchava o repositório (o vídeo sozinho tem
+# 46 MB).
 Palestrantes.mp4
 fotospalestrantes/

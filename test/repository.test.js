@@ -7,7 +7,7 @@ import { leadsExemplo, palestrasExemplo } from '../server/data/exemplo.js';
 import { config } from '../config.js';
 
 async function bancoCheio() {
-  const db = abrirBanco(':memory:');
+  const db = await abrirBanco(':memory:');
   await sincronizar(db, {
     runQuery: async (sql) => (sql.includes('presencial_metricas') ? palestrasExemplo : leadsExemplo),
   });
@@ -16,7 +16,7 @@ async function bancoCheio() {
 
 test('as palestras vêm da base de métricas, da mais recente para a mais antiga', async () => {
   const db = await bancoCheio();
-  const eventos = listarEventos(db);
+  const eventos = await listarEventos(db);
   assert.deepEqual(eventos.map((e) => e.cidade), ['Sorocaba', 'Ribeirão Preto', 'Uberlândia']);
   assert.deepEqual(eventos.map((e) => e.slug), [
     'sorocaba-2026-08-10', 'ribeirao-preto-2026-07-29', 'uberlandia-2026-07-27',
@@ -25,7 +25,7 @@ test('as palestras vêm da base de métricas, da mais recente para a mais antiga
 
 test('a palestra traz presença e vendas da base de métricas, e os leads da outra', async () => {
   const db = await bancoCheio();
-  const [sorocaba] = listarEventos(db);
+  const [sorocaba] = await listarEventos(db);
   assert.equal(sorocaba.cadastrados, 1153);
   assert.equal(sorocaba.presentes, 90);
   assert.equal(sorocaba.vendas, 9);
@@ -36,7 +36,7 @@ test('a palestra traz presença e vendas da base de métricas, e os leads da out
 
 test('lead com Palestrante de dois nomes pertence aos dois juntos', async () => {
   const db = await bancoCheio();
-  const d = detalheEvento(db, 'ribeirao-preto-2026-07-29');
+  const d = await detalheEvento(db, 'ribeirao-preto-2026-07-29');
   assert.deepEqual(d.instrutores.map((i) => i.instrutor), ['Elidiano', 'Elizier']);
   assert.equal(d.instrutores[0].total, 4);
   assert.equal(d.instrutores[1].total, 4);
@@ -44,13 +44,13 @@ test('lead com Palestrante de dois nomes pertence aos dois juntos', async () => 
 
 test('o quadro do evento traz o funil inteiro, na ordem do funil', async () => {
   const db = await bancoCheio();
-  const d = detalheEvento(db, 'sorocaba-2026-08-10');
+  const d = await detalheEvento(db, 'sorocaba-2026-08-10');
   assert.deepEqual(d.colunas.map((c) => c.etapaName), config.ordemEtapas);
 });
 
 test('os leads do evento caem cada um na sua etapa', async () => {
   const db = await bancoCheio();
-  const d = detalheEvento(db, 'sorocaba-2026-08-10');
+  const d = await detalheEvento(db, 'sorocaba-2026-08-10');
   const porEtapa = new Map(d.colunas.map((c) => [c.etapaName, c.leads.length]));
   assert.equal(porEtapa.get('EM CONTATO'), 2);
   assert.equal(porEtapa.get('PAGO TRIBO'), 1);
@@ -62,22 +62,22 @@ test('os leads do evento caem cada um na sua etapa', async () => {
 
 test('palestra inexistente volta vazia', async () => {
   const db = await bancoCheio();
-  assert.deepEqual(detalheEvento(db, 'nao-existe'), {});
+  assert.deepEqual(await detalheEvento(db, 'nao-existe'), {});
 });
 
 test('o instrutor só enxerga a palestra em que subiu ao palco', async () => {
   const db = await bancoCheio();
   const marcos = { papel: 'instrutor', vinculos: ['Marcos'] };
-  assert.deepEqual(listarEventos(db, marcos), []);
-  assert.deepEqual(detalheEvento(db, 'sorocaba-2026-08-10', marcos), {});
+  assert.deepEqual(await listarEventos(db, marcos), []);
+  assert.deepEqual(await detalheEvento(db, 'sorocaba-2026-08-10', marcos), {});
 
   const elizier = { papel: 'instrutor', vinculos: ['Elizier'] };
-  assert.deepEqual(listarEventos(db, elizier).map((e) => e.cidade), ['Sorocaba', 'Ribeirão Preto']);
+  assert.deepEqual((await listarEventos(db, elizier)).map((e) => e.cidade), ['Sorocaba', 'Ribeirão Preto']);
 });
 
 test('saude reporta os leads que a origem mandou quebrados', async () => {
   const db = await bancoCheio();
-  const s = saude(db);
+  const s = await saude(db);
   assert.equal(s.descartados, 2);
   assert.equal(s.semPalestra, 0);
   assert.equal(s.duplicados, 0);
@@ -86,7 +86,7 @@ test('saude reporta os leads que a origem mandou quebrados', async () => {
 
 test('nomesDePalestrante lista os palestrantes reais, separando a barra', async () => {
   const db = await bancoCheio();
-  assert.deepEqual(nomesDePalestrante(db), ['Elidiano', 'Elizier']);
+  assert.deepEqual(await nomesDePalestrante(db), ['Elidiano', 'Elizier']);
 });
 
 // O caso de verdade que motivou o eventName: Balneário Camboriú teve palestra
@@ -108,12 +108,12 @@ test('eventName com sigla+data manda pro evento certo, onde a cidade sozinha err
       PipelineName: 'Presencial Balneário Camboriú', EtapaId: 'e1', EtapaName: 'EM CONTATO',
       Palestrante: null, Atendente: null, EventName: '[2005]BC' },
   ];
-  const db = abrirBanco(':memory:');
+  const db = await abrirBanco(':memory:');
   await sincronizar(db, {
     runQuery: async (sql) => (sql.includes('presencial_metricas') ? palestrasRaw : leadsRaw),
   });
-  const semCodigo = db.prepare('SELECT palestra_slug FROM leads WHERE nome = ?').get('Sem código');
-  const comCodigo = db.prepare('SELECT palestra_slug FROM leads WHERE nome = ?').get('Com código');
+  const semCodigo = (await db.execute({ sql: 'SELECT palestra_slug FROM leads WHERE nome = ?', args: ['Sem código'] })).rows[0];
+  const comCodigo = (await db.execute({ sql: 'SELECT palestra_slug FROM leads WHERE nome = ?', args: ['Com código'] })).rows[0];
   // Sem eventName, cai no fallback de sempre: aposta na palestra mais recente.
   assert.equal(semCodigo.palestra_slug, 'balneario-camboriu-2026-08-10');
   // Com o código, vai pra data certa — mesmo sendo a mais antiga das duas.
@@ -136,11 +136,11 @@ test('código embutido no PipelineName resolve sem precisar de eventName', async
       PipelineName: 'Presencial Balneário Camboriú - [2005] BC', EtapaId: 'e1', EtapaName: 'EM CONTATO',
       Palestrante: null, Atendente: null, EventName: null },
   ];
-  const db = abrirBanco(':memory:');
+  const db = await abrirBanco(':memory:');
   await sincronizar(db, {
     runQuery: async (sql) => (sql.includes('presencial_metricas') ? palestrasRaw : leadsRaw),
   });
-  const lead = db.prepare('SELECT palestra_slug FROM leads WHERE nome = ?').get('PipelineName novo');
+  const lead = (await db.execute({ sql: 'SELECT palestra_slug FROM leads WHERE nome = ?', args: ['PipelineName novo'] })).rows[0];
   assert.equal(lead.palestra_slug, 'balneario-camboriu-2026-05-20');
 });
 
@@ -162,38 +162,38 @@ test('PipelineName vence eventName desatualizado de outra cidade', async () => {
       PipelineName: 'Presencial Blumenau - [2408]  BLU', EtapaId: 'e1', EtapaName: 'EM CONTATO',
       Palestrante: null, Atendente: null, EventName: '[2408] PAL' },
   ];
-  const db = abrirBanco(':memory:');
+  const db = await abrirBanco(':memory:');
   await sincronizar(db, {
     runQuery: async (sql) => (sql.includes('presencial_metricas') ? palestrasRaw : leadsRaw),
   });
-  const lead = db.prepare('SELECT palestra_slug FROM leads WHERE nome = ?').get('Contaminado');
+  const lead = (await db.execute({ sql: 'SELECT palestra_slug FROM leads WHERE nome = ?', args: ['Contaminado'] })).rows[0];
   assert.equal(lead.palestra_slug, 'blumenau-2026-08-24');
 });
 
 test('sincronizar de novo troca o conteúdo sem duplicar', async () => {
   const db = await bancoCheio();
-  const antes = listarEventos(db).length;
+  const antes = (await listarEventos(db)).length;
   await sincronizar(db, {
     runQuery: async (sql) => (sql.includes('presencial_metricas') ? palestrasExemplo : leadsExemplo),
   });
-  assert.equal(listarEventos(db).length, antes);
-  assert.equal(db.prepare('SELECT COUNT(*) n FROM leads').get().n, 12);
+  assert.equal((await listarEventos(db)).length, antes);
+  assert.equal((await db.execute('SELECT COUNT(*) n FROM leads')).rows[0].n, 12);
 });
 
 // A origem manda a mesma pessoa mais de uma vez às vezes — de ponta a ponta,
 // não só a função pura: a linha repetida não pode virar dois leads na tela.
 test('lead que a origem manda repetido conta como um só, de ponta a ponta', async () => {
-  const db = abrirBanco(':memory:');
+  const db = await abrirBanco(':memory:');
   const repetido = leadsExemplo[0]; // Hérika Rodrigues, Sorocaba, EM CONTATO
   const leadsComRepeticao = [...leadsExemplo, { ...repetido }, { ...repetido }];
   await sincronizar(db, {
     runQuery: async (sql) => (sql.includes('presencial_metricas') ? palestrasExemplo : leadsComRepeticao),
   });
 
-  const d = detalheEvento(db, 'sorocaba-2026-08-10');
+  const d = await detalheEvento(db, 'sorocaba-2026-08-10');
   const emContato = d.colunas.find((c) => c.etapaName === 'EM CONTATO');
   assert.equal(emContato.leads.filter((l) => l.nome === 'Hérika Rodrigues').length, 1);
 
-  const s = saude(db);
+  const s = await saude(db);
   assert.equal(s.duplicados, 2, 'as duas cópias extras contam como descartadas por duplicação');
 });

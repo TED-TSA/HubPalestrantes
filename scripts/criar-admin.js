@@ -24,14 +24,14 @@ try {
     process.exit(1);
   }
 
-  const db = bancoPadrao();
-  const existente = usuarios.porEmail(db, email);
+  const db = await bancoPadrao();
+  const existente = await usuarios.porEmail(db, email);
   if (existente) {
-    usuarios.atualizar(db, existente.id, { nome: nome || existente.nome, papel: 'admin', ativo: true });
-    usuarios.resetarSenha(db, existente.id, senha);
+    await usuarios.atualizar(db, existente.id, { nome: nome || existente.nome, papel: 'admin', ativo: true });
+    await usuarios.resetarSenha(db, existente.id, senha);
     console.log(`\nUsuário ${email} promovido a admin e senha redefinida.`);
   } else {
-    usuarios.criar(db, { email, nome, senha, papel: 'admin' });
+    await usuarios.criar(db, { email, nome, senha, papel: 'admin' });
     console.log(`\nAdmin ${email} criado.`);
   }
   console.log('Ele vai precisar trocar a senha no primeiro acesso.');
